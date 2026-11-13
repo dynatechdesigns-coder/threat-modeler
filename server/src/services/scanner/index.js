@@ -52,7 +52,7 @@ export function createAgentScanner({ config = {}, fetchImpl = globalThis.fetch }
       const { sources, manifests, stats, smartError } = await loadSources({ files, readFile, log, includeTests: cfg.includeTests });
 
       if (sources.length === 0 && manifests.length === 0) {
-        throw new Error('No scannable source files found. Upload code files or a .zip of your project.');
+        throw new Error(smartError || 'No scannable source files found. Upload code files or a .zip of your project.');
       }
       log(`Loaded ${sources.length} source file(s); skipped ${stats.ignored} non-code, ${stats.tooLarge} oversized`);
       if (stats.tests) log(`Skipped ${stats.tests} test/fixture file(s) (set SCAN_INCLUDE_TESTS=true to include them)`);

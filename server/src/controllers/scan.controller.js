@@ -113,6 +113,46 @@ async function startDemoScan(user) {
   return report;
 }
 
+/**
+ * Judge demo from a GitHub link: downloads a repository and scans it without
+ * an account. Same guards as the other demo entries (global concurrent-demo
+ * cap, per-IP demoLimiter, uploads auto-deleted after the scan).
+ */
+export const scanDemoGithub = asyncHandler(async (req, res) => {
+  await assertCanScan(req.user, { demo: true });
+
+  let target;
+  try {
+    target = parseGithubUrl(req.body?.url);
+  } catch (err) {
+    if (err instanceof GithubError) throw new ApiError(err.status, err.message);
+    throw err;
+  }
+
+  let zip;
+  try {
+    zip = await downloadRepoZip({ owner: target.owner, repo: target.repo, branch: target.branch, token: '', maxBytes: env.maxUploadMb * 1024 * 1024 });
+  } catch (err) {
+    if (err instanceof GithubError) throw new ApiError(err.status, err.message);
+    throw err;
+  }
+
+  const userId = req.user?._id;
+  const file = await saveFile(
+    { originalname: `${zip.repo}.zip`, mimetype: 'application/zip', size: zip.buffer.length, buffer: zip.buffer },
+    userId || 'demo'
+  );
+  const report = await ScanReport.create({
+    user: userId,
+    name: `${zip.owner}/${zip.repo}${zip.branch ? ` (${zip.branch})` : ''}`.slice(0, 120),
+    files: [file],
+    status: 'uploaded',
+    origin: { kind: 'demo', owner: zip.owner, repo: zip.repo, branch: zip.branch, private: false },
+  });
+  await startScan(report);
+  res.status(202).json({ report });
+});
+
 /** Scans a GitHub repository by link. Add a read-only token for a private one. */
 export const scanGithub = asyncHandler(async (req, res) => {
   await assertCanScan(req.user);

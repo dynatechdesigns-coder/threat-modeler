@@ -55,15 +55,18 @@ export async function loadSources({ files, readFile, log = () => {}, includeTest
   
   // Track metadata to generate smart errors if no code is found
   const rawExtensionsFound = new Set();
-  let allFilesNested = true; 
+  let minDepth = Infinity;
   let totalFilesConsidered = 0;
 
   const consider = (rawPath, buf) => {
     const p = String(rawPath).replace(/\\/g, '/').replace(/^(\.\/|\/)+/, '');
     const parts = p.split('/');
-    
+
     totalFilesConsidered++;
-    if (parts.length === 1) allFilesNested = false;
+    // Depth 2 is normal (a zip of project files, or a GitHub download which
+    // always wraps everything in one folder). Only deeper nesting everywhere
+    // means the person zipped an outer folder by mistake.
+    if (parts.length < minDepth) minDepth = parts.length;
 
     if (!p || parts.includes('..')) {
       stats.unreadable += 1;
@@ -158,15 +161,23 @@ export async function loadSources({ files, readFile, log = () => {}, includeTest
   let smartError = null;
   if (sources.length === 0 && totalFilesConsidered > 0) {
     const mediaExts = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'mp4', 'webm', 'mp3', 'wav', 'woff', 'woff2', 'ttf', 'eot'];
-    
-    const onlyMediaFound = Array.from(rawExtensionsFound).every(ext => mediaExts.includes(ext));
-    
+
+    const found = Array.from(rawExtensionsFound);
+    const onlyMediaFound = found.length > 0 && found.every((ext) => mediaExts.includes(ext));
+    const sawExtensions = found.slice(0, 3).map((e) => `.${e}`).join(', ');
+
     if (onlyMediaFound) {
-      smartError = "Analysis failed: Only image and media assets detected. Please upload a zip containing your actual source code (.js, .html, etc).";
-    } else if (allFilesNested) {
-      smartError = "Analysis failed: Nested folder detected. Please open your project folder and zip the code files directly, rather than zipping the outer folder.";
+      smartError = 'We could not find any code to review — this looks like only photos, images, or media files. Upload your source code files (like .js, .py, or .php) or a zip of your project instead.';
+    } else if (minDepth >= 3) {
+      smartError = 'We could not find any code to review — everything is buried inside folders. Open your project folder, select the code files inside it, and zip those directly.';
     } else {
-      smartError = `Analysis failed: ${stats.ignored} files were ignored (e.g. minified bundles, unsupported extensions, or ignored directories) and no readable source code was found.`;
+      const reasons = [];
+      if (stats.ignored) reasons.push(`${stats.ignored} skipped (photos, videos, bundles, or file types we do not review)`);
+      if (sawExtensions) reasons.push(`only ${sawExtensions} files found`);
+      smartError =
+        'We could not find any code to review' +
+        (reasons.length ? ` — ${reasons.join('; ')}` : '') +
+        '. Upload your source code files (like .js, .py, or .php) or a zip of your project instead.';
     }
   }
 

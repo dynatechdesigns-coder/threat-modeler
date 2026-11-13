@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, FolderUp, Loader2, RotateCcw, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, FolderUp, Link2, Loader2, RotateCcw, ShieldCheck, Sparkles } from 'lucide-react';
 import Terminal from '../components/scan/Terminal.jsx';
 import SeverityBadge from '../components/ui/SeverityBadge.jsx';
 import { SEVERITIES } from '../lib/severity.js';
@@ -24,6 +24,27 @@ async function fetchDemo(id) {
 }
 
 const MAX_DEMO_BYTES = 100 * 1024 * 1024;
+
+async function postDemoGithub(url) {
+  const res = await fetch(`${API_BASE}/scans/demo/github`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  if (res.status === 429) throw new Error('The demo is busy right now. Please try again in a minute');
+  if (!res.ok) {
+    let message = `Scan failed to start (HTTP ${res.status})`;
+    try {
+      const data = await res.json();
+      if (data?.message) message = data.message;
+    } catch {
+      // Ignore
+    }
+    throw new Error(message);
+  }
+  const data = await res.json();
+  return data.report;
+}
 
 // Mirror of the server's ignored directories: no point uploading them,
 // and node_modules alone would blow the size budget.
@@ -85,8 +106,9 @@ async function postDemoUpload(files) {
 export default function Demo() {
   const [phase, setPhase] = useState('idle');
   const [mode, setMode] = useState('sample');
-  const [ranOwn, setRanOwn] = useState(false);
+  const [ranNoun, setRanNoun] = useState('the demo app');
   const [files, setFiles] = useState([]);
+  const [repoUrl, setRepoUrl] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [report, setReport] = useState(null);
   const [error, setError] = useState('');
@@ -118,14 +140,18 @@ export default function Demo() {
     }, 2500);
   }, []);
 
-  const start = async (which = mode, chosen = files) => {
+  const start = async (which = mode, chosen = files, url = repoUrl) => {
     setError('');
     setReport(null);
     setPhase('starting');
     try {
       if (which === 'own' && chosen.length === 0) throw new Error('Choose at least one code file or a zip to scan');
-      setRanOwn(which === 'own');
-      const created = which === 'own' ? await postDemoUpload(chosen) : await postDemo();
+      if (which === 'github' && !url.trim()) throw new Error('Paste a public GitHub repository link first');
+      setRanNoun(which === 'github' ? 'this repo' : which === 'own' ? 'your code' : 'the demo app');
+      let created;
+      if (which === 'own') created = await postDemoUpload(chosen);
+      else if (which === 'github') created = await postDemoGithub(url.trim());
+      else created = await postDemo();
       setReport(created);
       setPhase('running');
       poll(created._id);
@@ -139,6 +165,7 @@ export default function Demo() {
     stopPolling();
     setReport(null);
     setFiles([]);
+    setRepoUrl('');
     setDragOver(false);
     setError('');
     setPhase('idle');
@@ -156,7 +183,13 @@ export default function Demo() {
             <ShieldCheck className="h-5 w-5 text-cyan-400" />
             Threat Modeler
           </Link>
-          <Link to="/login" className="btn-ghost px-4 py-2 text-sm">Sign in</Link>
+          <div className="flex items-center gap-2">
+            <Link to="/" className="btn-ghost px-4 py-2 text-sm">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Link>
+            <Link to="/login" className="btn-ghost px-4 py-2 text-sm">Sign in</Link>
+          </div>
         </div>
       </header>
 
@@ -169,7 +202,7 @@ export default function Demo() {
               No account, no password.
             </p>
 
-            <div className="mx-auto mt-8 inline-flex rounded-xl border border-slate-800 bg-slate-900 p-1 text-sm">
+            <div className="mx-auto mt-8 inline-flex flex-wrap justify-center rounded-xl border border-slate-800 bg-slate-900 p-1 text-sm">
               <button
                 type="button"
                 onClick={() => setMode('sample')}
@@ -186,6 +219,14 @@ export default function Demo() {
                 <FolderUp className="h-4 w-4" />
                 Your code
               </button>
+              <button
+                type="button"
+                onClick={() => setMode('github')}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 ${mode === 'github' ? 'bg-slate-700 text-white' : 'text-slate-400'}`}
+              >
+                <Link2 className="h-4 w-4" />
+                GitHub repo
+              </button>
             </div>
 
             {mode === 'sample' ? (
@@ -194,6 +235,27 @@ export default function Demo() {
                   Run the live demo
                   <ArrowRight className="h-4 w-4" />
                 </button>
+              </div>
+            ) : mode === 'github' ? (
+              <div className="mx-auto mt-6 max-w-xl rounded-xl border border-slate-800 bg-slate-900 p-6">
+                <input
+                  type="url"
+                  value={repoUrl}
+                  onChange={(e) => setRepoUrl(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') start('github', [], repoUrl); }}
+                  placeholder="https://github.com/owner/repo"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 font-mono text-sm text-slate-200 placeholder:text-slate-600 focus:border-cyan-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => start('github', [], repoUrl)}
+                  disabled={!repoUrl.trim()}
+                  className="btn-primary mx-auto mt-4 px-6 py-3 text-base disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Scan this repo
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+                <p className="mt-3 text-xs text-slate-500">Public repositories only. Private repos need a free account.</p>
               </div>
             ) : (
               <div className="mx-auto mt-6 max-w-xl rounded-xl border border-slate-800 bg-slate-900 p-6">
@@ -258,7 +320,7 @@ export default function Demo() {
           <div>
             <div className="mb-4 flex items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-cyan-400" />
-              <p className="text-slate-300">Scanning {ranOwn ? 'your code' : 'the demo app'}… you can watch every step below.</p>
+              <p className="text-slate-300">Scanning {ranNoun}… you can watch every step below.</p>
             </div>
             <Terminal lines={report?.logs || ['Starting demo scan…']} running />
           </div>
@@ -303,7 +365,7 @@ export default function Demo() {
             </div>
 
             <div className="mt-10 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-6 text-center">
-              <h2 className="text-xl font-bold text-white">{ranOwn ? 'That was your code. Imagine this on every commit.' : "That's the demo. Imagine it on your code."}</h2>
+              <h2 className="text-xl font-bold text-white">{ranNoun === 'the demo app' ? "That's the demo. Imagine it on your code." : `That was ${ranNoun}. Imagine this on every commit.`}</h2>
               <p className="mt-2 text-sm text-slate-400">Sign up free to save reports, track fixes, and watch repos.</p>
               <div className="mt-4 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link to="/login" className="btn-primary px-6 py-3 text-base">

@@ -148,11 +148,23 @@ test('missing API key skips the AI layer with a clear message', async () => {
   assert.ok(logs.some((l) => l.includes('AI review skipped')));
 });
 
-test('uploads with no code fail with a helpful error', async () => {
+test('uploads with no code fail with a specific plain-words error', async () => {
   const scanner = createAgentScanner({ config: { ...baseConfig, apiKey: '', osvEnabled: false } });
+  // Plain text: nothing scannable, so the report says what it saw, in plain words.
   await assert.rejects(
     () => scanner.scan({ files: [{ originalName: 'notes.txt', key: 'n', storage: 'local' }], readFile: async () => Buffer.from('hello') }),
-    /No scannable source files/
+    /could not find any code to review.*only \.txt files found/
+  );
+  // Media only: the report names the actual problem.
+  await assert.rejects(
+    () => scanner.scan({ files: [{ originalName: 'logo.png', key: 'm', storage: 'local' }], readFile: async () => Buffer.from('fakepng') }),
+    /only photos, images, or media files/
+  );
+  // Deeply nested folders: the report tells the person to zip the inner files directly.
+  // (One wrapper folder is normal for GitHub downloads, so it must not trigger this.)
+  await assert.rejects(
+    () => scanner.scan({ files: [{ originalName: 'project/src/notes.txt', key: 'z', storage: 'local' }], readFile: async () => Buffer.from('hello') }),
+    /buried inside folders/
   );
 });
 

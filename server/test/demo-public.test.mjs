@@ -49,6 +49,17 @@ test('judge demo: visitors can scan their own code without an account', () => {
   assert.ok(controllerSrc.includes("'origin.kind': 'demo'"), 'demo uploads should be scoped as demo-origin reports');
 });
 
+test('judge demo: visitors can scan a public GitHub repo without an account', () => {
+  const githubRoute = routesSrc.indexOf("router.post('/demo/github'");
+  const guard = routesSrc.indexOf('router.use(protect)');
+  assert.ok(githubRoute !== -1, 'scan routes should expose the public demo github endpoint');
+  assert.ok(githubRoute < guard, 'demo github must be registered before router.use(protect)');
+  assert.ok(routesSrc.includes('scanDemoGithub'), 'scan routes should wire scanDemoGithub');
+  assert.equal(typeof scanController.scanDemoGithub, 'function', 'scanDemoGithub should be exported');
+  assert.ok(controllerSrc.includes('downloadRepoZip'), 'demo github should reuse the repo downloader');
+  assert.ok(controllerSrc.includes("token: ''"), 'anonymous demo github must not accept private-repo tokens');
+});
+
 test('judge demo: status polling has its own generous cap so it never 429s mid-scan', () => {
   assert.equal(typeof rateLimits.demoPollLimiter, 'function', 'demoPollLimiter should be exported');
   assert.ok(routesSrc.includes("router.get('/demo/:id', demoPollLimiter,"), 'polling must use demoPollLimiter, not the 10/hour creation cap');
