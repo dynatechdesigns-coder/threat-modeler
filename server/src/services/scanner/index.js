@@ -1,5 +1,5 @@
 import { loadSources } from './agent/fileLoader.js';
-import { runStaticRules } from './staticRules.js';
+import { runStaticRules } from './agent/staticRules.js';
 import { scanDependencies } from './osv.js';
 import { reviewWithAI } from './llmAnalyzer.js';
 import { buildSummary } from './aiSummary.js';
