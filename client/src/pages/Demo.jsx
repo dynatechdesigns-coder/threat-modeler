@@ -25,11 +25,45 @@ async function fetchDemo(id) {
 
 const MAX_DEMO_BYTES = 100 * 1024 * 1024;
 
+// Mirror of the server's ignored directories: no point uploading them,
+// and node_modules alone would blow the size budget.
+const IGNORED_DIRS = new Set([
+  'node_modules', '.git', 'dist', 'build', '.next', 'coverage', 'vendor', '__pycache__',
+  '.venv', 'venv', 'target', '.idea', '.vscode', '__MACOSX',
+]);
+
+// Reads dropped files, descending into project folders (the picker itself
+// only gives files). Directory entries are flattened with their paths kept,
+// executables are left out here too — the server blocks them as well.
+async function filesFromDrop(dataTransfer) {
+  const items = Array.from(dataTransfer?.items || []);
+  if (!items.length || !items[0]?.webkitGetAsEntry) return Array.from(dataTransfer?.files || []);
+  const out = [];
+  const walk = async (entry, prefix) => {
+    if (entry.isFile) {
+      const f = await new Promise((resolve, reject) => entry.file(resolve, reject));
+      out.push(new File([f], prefix + f.name, { type: f.type }));
+    } else if (entry.isDirectory && !IGNORED_DIRS.has(entry.name)) {
+      const reader = entry.createReader();
+      let batch = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+      while (batch.length) {
+        for (const child of batch) await walk(child, `${prefix}${entry.name}/`);
+        batch = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+      }
+    }
+  };
+  for (const item of items) {
+    const entry = item.webkitGetAsEntry?.();
+    if (entry) await walk(entry, '');
+  }
+  return out.length ? out : Array.from(dataTransfer?.files || []);
+}
+
 async function postDemoUpload(files) {
   const total = files.reduce((n, f) => n + f.size, 0);
   if (total > MAX_DEMO_BYTES) throw new Error('Those files total over 100MB. Try a smaller set or a zip of just your source files');
   const form = new FormData();
-  for (const f of files.slice(0, 10)) form.append('files', f);
+  for (const f of files.slice(0, 40)) form.append('files', f);
   const res = await fetch(`${API_BASE}/scans/demo/upload`, { method: 'POST', body: form });
   if (res.status === 429) throw new Error('The demo is busy right now. Please try again in a minute');
   if (!res.ok) {
@@ -53,6 +87,7 @@ export default function Demo() {
   const [mode, setMode] = useState('sample');
   const [ranOwn, setRanOwn] = useState(false);
   const [files, setFiles] = useState([]);
+  const [dragOver, setDragOver] = useState(false);
   const [report, setReport] = useState(null);
   const [error, setError] = useState('');
   const timer = useRef(null);
@@ -104,6 +139,7 @@ export default function Demo() {
     stopPolling();
     setReport(null);
     setFiles([]);
+    setDragOver(false);
     setError('');
     setPhase('idle');
   };
@@ -161,24 +197,35 @@ export default function Demo() {
               </div>
             ) : (
               <div className="mx-auto mt-6 max-w-xl rounded-xl border border-slate-800 bg-slate-900 p-6">
-                <label className="block cursor-pointer rounded-xl border border-dashed border-slate-700 p-6 text-slate-400 hover:border-cyan-500/50">
+                <label
+                  className={`block cursor-pointer rounded-xl border border-dashed p-6 transition-colors ${dragOver ? 'border-cyan-400 bg-cyan-500/10 text-slate-200' : 'border-slate-700 text-slate-400 hover:border-cyan-500/50'}`}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    setDragOver(false);
+                    const dropped = await filesFromDrop(e.dataTransfer);
+                    if (dropped.length) setFiles(dropped.slice(0, 40));
+                  }}
+                >
                   <input
                     type="file"
                     multiple
                     className="hidden"
-                    onChange={(e) => setFiles(Array.from(e.target.files || []))}
+                    onChange={(e) => setFiles(Array.from(e.target.files || []).slice(0, 40))}
                   />
                   {files.length === 0 ? (
-                    <span>Drop in code files or a zip <span className="text-slate-500">(up to 10 files, 100MB total)</span></span>
+                    <span>Drag & drop code files, a zip, or a whole project folder here, or click to browse <span className="text-slate-500">(100MB total)</span></span>
                   ) : (
-                    <span className="text-slate-200">{files.length} file{files.length === 1 ? '' : 's'} selected</span>
+                    <span className="text-slate-200">{files.length} file{files.length === 1 ? '' : 's'} selected — drop to replace</span>
                   )}
                 </label>
                 {files.length > 0 && (
                   <ul className="mt-3 space-y-1 text-left font-mono text-xs text-slate-500">
-                    {files.slice(0, 10).map((f) => (
+                    {files.slice(0, 12).map((f) => (
                       <li key={f.name + f.size} className="truncate">{f.name}</li>
                     ))}
+                    {files.length > 12 && <li>…and {files.length - 12} more</li>}
                   </ul>
                 )}
                 <button
