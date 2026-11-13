@@ -1,8 +1,11 @@
 import { loadSources } from './agent/fileLoader.js';
 import { runStaticRules } from './agent/staticRules.js';
-import { checkOsv } from './agent/osv.js';
-import { reviewWithAI } from './llmAnalyzer.js';
-import { buildSummary } from './aiSummary.js';
+import { scanDependencies } from './agent/osv.js';
+import { reviewWithAI } from './agent/llmAnalyzer.js';
+import { buildSummary } from './agent/aiSummary.js';
+import { env } from '../../config/env.js';
+import { agentScanner } from './agentScanner.js';
+import { mockScanner } from './mockScanner.js';
 
 const ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
 const MAX_FINDINGS = 200;
@@ -113,4 +116,12 @@ export function createAgentScanner({ config = {}, fetchImpl = globalThis.fetch }
       return { findings, logs, aiSummary };
     },
   };
+}
+
+/**
+ * Provider switch used by the scan runner. SCANNER_PROVIDER=mock selects the
+ * sample-data scanner for UI work; anything else selects the real agent.
+ */
+export function getScanner() {
+  return env.scannerProvider === 'mock' ? mockScanner : agentScanner;
 }

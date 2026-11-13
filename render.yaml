@@ -1,0 +1,21 @@
+# Render Blueprint: deploys the Express API in ./server.
+# Service runs `npm install` then `npm start` (node src/server.js) with
+# rootDir=server, so package paths resolve to server/package.json.
+services:
+  - type: web
+    name: threat-modeler-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    # Production refuses to boot without these three (see src/config/envChecks.js).
+    # Values marked `sync: false` must be filled in once in the Render dashboard.
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false
