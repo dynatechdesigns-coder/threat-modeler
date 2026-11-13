@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "Threat Modeler",
+  "short_name": "ThreatModeler",
+  "description": "AI security review for your code, plus a link checker that works offline.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "icons": [
+    { "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Link Checker", "short_name": "Links", "url": "/links", "icons": [{ "src": "/favicon-192.png", "sizes": "192x192" }] },
+    { "name": "New scan", "short_name": "Scan", "url": "/vault", "icons": [{ "src": "/favicon-192.png", "sizes": "192x192" }] }
+  ]
+}

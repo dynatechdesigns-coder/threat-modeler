@@ -1,0 +1,397 @@
+{
+ "NodeGoat": [
+  {
+   "id": "N1",
+   "kind": "code-exec",
+   "file": "app/routes/contributions.js",
+   "line": "eval\\(req\\.body\\.preTax\\)",
+   "note": "eval() on request input"
+  },
+  {
+   "id": "N2",
+   "kind": "nosql-injection",
+   "file": "app/data/allocations-dao.js",
+   "line": "\\$where: `this\\.userId",
+   "note": "$where built from user input"
+  },
+  {
+   "id": "N3",
+   "kind": "open-redirect",
+   "file": "app/routes/index.js",
+   "line": "res\\.redirect\\(req\\.query\\.url\\)",
+   "note": "redirect to user URL"
+  },
+  {
+   "id": "N4",
+   "kind": "ssrf",
+   "file": "app/routes/research.js",
+   "line": "needle\\.get\\(url",
+   "note": "server fetches user URL"
+  },
+  {
+   "id": "N5",
+   "kind": "redos",
+   "file": "app/routes/profile.js",
+   "line": "const regexPattern = /\\(\\[0-9\\]\\+\\)\\+",
+   "note": "catastrophic-backtracking regex"
+  },
+  {
+   "id": "N6",
+   "kind": "secret",
+   "file": "config/env/all.js",
+   "line": "cookieSecret:",
+   "note": "hardcoded session secret"
+  },
+  {
+   "id": "N7",
+   "kind": "secret",
+   "file": "config/env/all.js",
+   "line": "cryptoKey:",
+   "note": "hardcoded encryption key"
+  },
+  {
+   "id": "N8",
+   "kind": "cookie",
+   "file": "app/routes/session.js",
+   "line": "res\\.cookie\\(\"session\"",
+   "note": "session id cookie without flags"
+  }
+ ],
+ "DVWA": [
+  {
+   "id": "D1",
+   "kind": "sql-injection",
+   "file": "vulnerabilities/sqli/source/low.php",
+   "line": "\\$query\\s*=.*\\$id",
+   "note": "SQL built from request"
+  },
+  {
+   "id": "D2",
+   "kind": "sql-injection",
+   "file": "vulnerabilities/sqli_blind/source/low.php",
+   "line": "\\$query\\s*=.*user_id = '\\$id'",
+   "note": "blind SQL injection"
+  },
+  {
+   "id": "D3",
+   "kind": "xss",
+   "file": "vulnerabilities/xss_r/source/low.php",
+   "line": "Hello ' \\. \\$_GET",
+   "note": "reflected XSS"
+  },
+  {
+   "id": "D4",
+   "kind": "xss",
+   "file": "vulnerabilities/xss_s/source/low.php",
+   "line": "INSERT INTO guestbook",
+   "note": "stored XSS (unsanitised message saved)"
+  },
+  {
+   "id": "D5",
+   "kind": "cmd-injection",
+   "file": "vulnerabilities/exec/source/low.php",
+   "line": "shell_exec\\( 'ping  ' \\. \\$target",
+   "note": "OS command injection"
+  },
+  {
+   "id": "D6",
+   "kind": "file-inclusion",
+   "file": "vulnerabilities/fi/source/low.php",
+   "line": "\\$file = \\$_GET\\[ 'page' \\]",
+   "note": "file inclusion by request parameter"
+  },
+  {
+   "id": "D7",
+   "kind": "upload",
+   "file": "vulnerabilities/upload/source/low.php",
+   "line": "move_uploaded_file",
+   "note": "unrestricted file upload"
+  },
+  {
+   "id": "D8",
+   "kind": "csrf",
+   "file": "vulnerabilities/csrf/source/low.php",
+   "line": "\\$_GET\\[ 'Change' \\]",
+   "note": "password change with no CSRF token"
+  },
+  {
+   "id": "D9",
+   "kind": "sql-injection",
+   "file": "vulnerabilities/brute/source/low.php",
+   "line": "\\$query\\s*=.*\\$user",
+   "note": "SQL injection in login"
+  },
+  {
+   "id": "D10",
+   "kind": "open-redirect",
+   "file": "vulnerabilities/open_redirect/source/low.php",
+   "line": "header \\(\"location: \" \\. \\$_GET",
+   "note": "redirect to user URL"
+  },
+  {
+   "id": "D11",
+   "kind": "xss",
+   "file": "vulnerabilities/csp/source/low.php",
+   "line": "<script src='\" \\. \\$_POST",
+   "note": "script source from request"
+  },
+  {
+   "id": "D12",
+   "kind": "weak-hash",
+   "file": "vulnerabilities/csrf/source/low.php",
+   "line": "md5\\(",
+   "note": "MD5 password hash"
+  },
+  {
+   "id": "D13",
+   "kind": "xss",
+   "file": "vulnerabilities/xss_d/index.php",
+   "line": "document\\.write\\(\"<option",
+   "note": "DOM XSS via URL parameter"
+  }
+ ],
+ "juice-shop": [
+  {
+   "id": "J1",
+   "kind": "sql-injection",
+   "file": "routes/login.ts",
+   "line": "SELECT \\* FROM Users WHERE email",
+   "note": "login SQL injection"
+  },
+  {
+   "id": "J2",
+   "kind": "sql-injection",
+   "file": "routes/search.ts",
+   "line": "SELECT \\* FROM Products WHERE",
+   "note": "search SQL injection"
+  },
+  {
+   "id": "J3",
+   "kind": "nosql-injection",
+   "file": "routes/showProductReviews.ts",
+   "line": "\\$where",
+   "note": "$where from request id"
+  },
+  {
+   "id": "J4",
+   "kind": "nosql-injection",
+   "file": "routes/trackOrder.ts",
+   "line": "\\$where",
+   "note": "$where from request id"
+  },
+  {
+   "id": "J5",
+   "kind": "nosql-injection",
+   "file": "routes/chat.ts",
+   "line": "\\$where",
+   "note": "$where from product id"
+  },
+  {
+   "id": "J6",
+   "kind": "weak-hash",
+   "file": "lib/insecurity.ts",
+   "line": "createHash\\('md5'\\)",
+   "note": "MD5 for passwords"
+  },
+  {
+   "id": "J7",
+   "kind": "secret",
+   "file": "lib/insecurity.ts",
+   "line": "createHmac\\('sha256', '",
+   "note": "hardcoded HMAC secret"
+  },
+  {
+   "id": "J8",
+   "kind": "secret",
+   "file": "lib/insecurity.ts",
+   "line": "BEGIN RSA PRIVATE KEY",
+   "note": "private key in source"
+  },
+  {
+   "id": "J9",
+   "kind": "ssrf",
+   "file": "routes/profileImageUrlUpload.ts",
+   "line": "await fetch\\(url\\)",
+   "note": "server fetches user URL"
+  },
+  {
+   "id": "J10",
+   "kind": "cors",
+   "file": "server.ts",
+   "line": "app\\.use\\(cors\\(\\)\\)",
+   "note": "CORS open to everyone"
+  },
+  {
+   "id": "J11",
+   "kind": "xss",
+   "file": "frontend/src/app/search-result/search-result.component.ts",
+   "line": "bypassSecurityTrustHtml\\(queryParam",
+   "note": "sanitizer bypass on URL parameter"
+  },
+  {
+   "id": "J12",
+   "kind": "xss",
+   "file": "frontend/src/app/search-result/search-result.component.ts",
+   "line": "bypassSecurityTrustHtml\\(tableData",
+   "note": "sanitizer bypass on API data"
+  },
+  {
+   "id": "J13",
+   "kind": "code-exec",
+   "file": "routes/userProfile.ts",
+   "line": "username = eval\\(code\\)",
+   "note": "eval of user-controlled template"
+  },
+  {
+   "id": "J14",
+   "kind": "dir-listing",
+   "file": "server.ts",
+   "line": "serveIndex\\('infrastructure'",
+   "note": "directory listing enabled"
+  },
+  {
+   "id": "J15",
+   "kind": "redirect",
+   "file": "lib/insecurity.ts",
+   "line": "url\\.includes\\(allowedUrl\\)",
+   "note": "redirect allow-list bypass (logic)"
+  },
+  {
+   "id": "J16",
+   "kind": "access",
+   "file": "routes/updateProductReviews.ts",
+   "line": "\\{ _id: req\\.body\\.id \\}",
+   "note": "any user can edit any review (logic)"
+  }
+ ],
+ "dvna": [
+  {
+   "id": "V1",
+   "kind": "sql-injection",
+   "file": "core/appHandler.js",
+   "line": "var query = \"SELECT name,id FROM Users WHERE login='\"",
+   "note": "user search SQL injection"
+  },
+  {
+   "id": "V2",
+   "kind": "cmd-injection",
+   "file": "core/appHandler.js",
+   "line": "exec\\('ping -c 2 ' \\+ req\\.body\\.address",
+   "note": "ping command injection"
+  },
+  {
+   "id": "V3",
+   "kind": "open-redirect",
+   "file": "core/appHandler.js",
+   "line": "res\\.redirect\\(req\\.query\\.url\\)",
+   "note": "redirect to user URL"
+  },
+  {
+   "id": "V4",
+   "kind": "code-exec",
+   "file": "core/appHandler.js",
+   "line": "mathjs\\.eval\\(req\\.body\\.eqn\\)",
+   "note": "math expression evaluates user input"
+  },
+  {
+   "id": "V5",
+   "kind": "deserialization",
+   "file": "core/appHandler.js",
+   "line": "serialize\\.unserialize\\(",
+   "note": "insecure deserialization (node-serialize)"
+  },
+  {
+   "id": "V6",
+   "kind": "xxe",
+   "file": "core/appHandler.js",
+   "line": "parseXmlString\\(.*noent:true",
+   "note": "XML external entities enabled"
+  },
+  {
+   "id": "V7",
+   "kind": "weak-hash",
+   "file": "core/authHandler.js",
+   "line": "md5\\(req\\.query\\.login\\)",
+   "note": "password-reset token is md5 of the username"
+  },
+  {
+   "id": "V8",
+   "kind": "secret",
+   "file": "server.js",
+   "line": "secret: 'keyboard cat'",
+   "note": "hardcoded session secret"
+  },
+  {
+   "id": "V9",
+   "kind": "xss",
+   "file": "views/app/products.ejs",
+   "line": "<%- output\\.searchTerm %>",
+   "note": "unescaped output in template"
+  }
+ ],
+ "vflask": [
+  {
+   "id": "F1",
+   "kind": "sql-injection",
+   "file": "app/app.py",
+   "line": "str_query = \"SELECT first_name",
+   "note": "search SQL injection"
+  },
+  {
+   "id": "F2",
+   "kind": "secret",
+   "file": "app/app.py",
+   "line": "app\\.secret_key = ",
+   "note": "hardcoded Flask secret key"
+  },
+  {
+   "id": "F3",
+   "kind": "secret",
+   "file": "app/app.py",
+   "line": "SECRET_KEY_HMAC_2'\\] = 'am0r3C0mpl3xK3y'",
+   "note": "hardcoded JWT signing key"
+  },
+  {
+   "id": "F4",
+   "kind": "secret",
+   "file": "app/app.py",
+   "line": "SECRET_KEY_HMAC'\\] = 'secret'",
+   "note": "hardcoded, guessable JWT signing key"
+  },
+  {
+   "id": "F5",
+   "kind": "weak-hash",
+   "file": "app/app.py",
+   "line": "hashlib\\.md5\\(password\\)",
+   "note": "MD5 password hash"
+  },
+  {
+   "id": "F6",
+   "kind": "deserialization",
+   "file": "app/app.py",
+   "line": "yaml\\.load\\(y\\)",
+   "note": "unsafe YAML load"
+  },
+  {
+   "id": "F7",
+   "kind": "jwt",
+   "file": "app/app.py",
+   "line": "jwt\\.decode\\(token, verify = False\\)",
+   "note": "JWT accepted without checking the signature"
+  },
+  {
+   "id": "F8",
+   "kind": "secret",
+   "file": "app/app.py",
+   "line": "user\\.password = 'admin123'",
+   "note": "hardcoded admin password"
+  },
+  {
+   "id": "F9",
+   "kind": "ssti",
+   "file": "app/app.py",
+   "line": "return render_template_string\\(template, dir = dir",
+   "note": "template built from the request URL"
+  }
+ ]
+}

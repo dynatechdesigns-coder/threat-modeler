@@ -1,0 +1,38 @@
+{
+ "_how": "Hand-labelled by reading each finding in the code. noise = wrong or not a security issue. risky = a real risky pattern that is not clearly exploitable as written. Everything else = a real problem.",
+ "noise": [
+  "DVWA:vulnerabilities/exec/source/impossible.php:22",
+  "DVWA:vulnerabilities/exec/source/impossible.php:26",
+  "DVWA:vulnerabilities/cryptography/source/token_library_high.php:37",
+  "DVWA:vulnerabilities/cryptography/source/token_library_impossible.php:40",
+  "DVWA:vulnerabilities/fi/source/impossible.php:4",
+  "juice-shop:scripts/package.mjs:122"
+ ],
+ "risky": [
+  "DVWA:vulnerabilities/view_help.php:20",
+  "DVWA:vulnerabilities/view_help.php:22",
+  "DVWA:vulnerabilities/api/source/low.php:34",
+  "DVWA:vulnerabilities/api/source/low.php:81",
+  "DVWA:vulnerabilities/api/source/low.php:94",
+  "DVWA:vulnerabilities/api/source/medium.php:25",
+  "DVWA:vulnerabilities/authbypass/authbypass.js:43",
+  "DVWA:vulnerabilities/authbypass/authbypass.js:45",
+  "DVWA:vulnerabilities/authbypass/authbypass.js:47",
+  "DVWA:vulnerabilities/authbypass/authbypass.js:49",
+  "DVWA:vulnerabilities/csp/source/high.js:9",
+  "DVWA:vulnerabilities/csp/source/impossible.js:9",
+  "DVWA:vulnerabilities/bac/source/low.php:90",
+  "DVWA:vulnerabilities/exec/source/high.php:34",
+  "DVWA:vulnerabilities/exec/source/impossible.php:30",
+  "DVWA:vulnerabilities/exec/source/low.php:18",
+  "DVWA:vulnerabilities/exec/source/medium.php:27",
+  "DVWA:vulnerabilities/upload/source/impossible.php:45",
+  "juice-shop:routes/captcha.ts:22",
+  "juice-shop:frontend/src/app/login/login.component.ts:150",
+  "juice-shop:frontend/src/app/oauth/oauth.component.ts:52",
+  "juice-shop:frontend/src/app/payment/payment.component.ts:233",
+  "juice-shop:frontend/src/app/two-factor-auth-enter/two-factor-auth-enter.component.ts:54",
+  "juice-shop:frontend/src/app/data-export/data-export.component.ts:72",
+  "juice-shop:frontend/src/hacking-instructor/index.ts:126"
+ ]
+}
