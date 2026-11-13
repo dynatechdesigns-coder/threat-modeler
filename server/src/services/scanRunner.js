@@ -49,7 +49,8 @@ export async function executeScan(reportId, { onComplete } = {}) {
 
   try {
     // AI review costs real money, so it belongs to the paid plans.
-    const owner = await User.findById(report.user);
+    // Anonymous judge-demo reports have no owner; they scan with AI on.
+    const owner = report.user ? await User.findById(report.user) : null;
     const ai = owner ? planFor(owner).ai : true;
     const result = await getScanner().scan({
       ai,

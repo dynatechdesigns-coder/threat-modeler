@@ -43,7 +43,9 @@ const aiSummarySchema = new mongoose.Schema(
 
 const scanReportSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    // Optional: anonymous judge-demo reports have no account. Every other
+    // flow always sets this, so ownership scoping elsewhere is unaffected.
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false, index: true },
     name: { type: String, required: true, trim: true, maxlength: 120 },
     status: {
       type: String,

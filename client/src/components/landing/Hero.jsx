@@ -144,7 +144,7 @@ export default function Hero() {
               Join the waitlist
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </a>
-            <Link to="/login" className="btn-ghost px-6 py-3 text-base">Try the free plan</Link>
+            <Link to="/demo" className="btn-ghost px-6 py-3 text-base">Try the live demo — no signup</Link>
           </motion.div>
 
           <motion.p {...fadeUp(0.5)} className="mt-4 text-sm text-slate-500">

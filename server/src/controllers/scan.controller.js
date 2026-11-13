@@ -58,6 +58,13 @@ export const deleteScan = asyncHandler(async (req, res) => {
 });
 
 async function assertCanScan(user, { demo = false } = {}) {
+  if (!user) {
+    // Anonymous judge demo: no quota system without an account, so a small
+    // global cap on concurrent demo scans plus the per-IP demoLimiter instead.
+    const running = await ScanReport.countDocuments({ status: 'running', 'origin.kind': 'demo' });
+    if (running >= 3) throw new ApiError(429, 'The demo is busy right now. Please try again in a minute');
+    return;
+  }
   const running = await ScanReport.countDocuments({ user: user._id, status: 'running' });
   if (running >= 2) throw new ApiError(429, 'You already have 2 scans running. Wait for one to finish');
   if (!demo) await assertScanQuota(user);
@@ -89,13 +96,14 @@ async function startGithubScan(user, { owner, repo, branch = '', token = '', nam
 }
 
 async function startDemoScan(user) {
+  const userId = user?._id;
   const files = [];
   for (const f of demoFiles()) {
     const buffer = Buffer.from(f.content, 'utf8');
-    files.push(await saveFile({ originalname: f.name, mimetype: 'text/plain', size: buffer.length, buffer }, user._id));
+    files.push(await saveFile({ originalname: f.name, mimetype: 'text/plain', size: buffer.length, buffer }, userId || 'demo'));
   }
   const report = await ScanReport.create({
-    user: user._id,
+    user: userId,
     name: 'Demo: vulnerable app',
     files,
     status: 'uploaded',
@@ -147,6 +155,19 @@ export const disableShare = asyncHandler(async (req, res) => {
 export const scanDemo = asyncHandler(async (req, res) => {
   await assertCanScan(req.user, { demo: true });
   res.status(202).json({ report: await startDemoScan(req.user) });
+});
+
+/**
+ * Public demo result polling for visitors without an account (hackathon
+ * judges). Only demo-origin reports are reachable here, and the owner id is
+ * stripped so anonymous reports cannot be tied back to anyone.
+ */
+export const getDemoScan = asyncHandler(async (req, res) => {
+  const report = await ScanReport.findOne({ _id: req.params.id, 'origin.kind': 'demo' });
+  if (!report) throw new ApiError(404, 'Demo scan not found');
+  const out = report.toObject();
+  delete out.user;
+  res.json({ report: out });
 });
 
 /**

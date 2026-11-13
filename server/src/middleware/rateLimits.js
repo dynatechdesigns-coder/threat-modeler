@@ -54,6 +54,15 @@ export const scanLimiter = rateLimit({
   message: msg('Scan limit reached (20 per hour). Please try again later'),
 });
 
+// One-click public demo: no sign-in, so it is limited per visitor address.
+// Each run executes a full scan, so the hourly cap is deliberately small.
+export const demoLimiter = rateLimit({
+  ...base,
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  message: msg('Demo limit reached (10 per hour). Please try again later'),
+});
+
 // Public share links need no sign-in, so they are limited per visitor address.
 export const publicLimiter = rateLimit({
   ...base,
