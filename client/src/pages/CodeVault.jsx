@@ -6,8 +6,8 @@ import { getErrorMessage } from '../lib/errors.js';
 import { formatBytes } from '../lib/format.js';
 import FileDropzone from '../components/scan/FileDropzone.jsx';
 
-const MAX_FILES = 10;
-const MAX_MB = 25;
+const MAX_FILES = 40;
+const MAX_MB = 100;
 
 export default function CodeVault() {
   const navigate = useNavigate();

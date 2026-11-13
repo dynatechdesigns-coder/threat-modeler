@@ -30,7 +30,7 @@ export default function FileDropzone({ onFiles, disabled }) {
     >
       <UploadCloud className={`h-10 w-10 ${dragging ? 'text-cyan-400' : 'text-slate-500'}`} />
       <p className="mt-4 text-sm font-medium text-slate-200">Drag and drop source files here</p>
-      <p className="mt-1 text-xs text-slate-500">or click to browse. Up to 10 files, 25MB each. Zip archives are supported.</p>
+      <p className="mt-1 text-xs text-slate-500">or click to browse. Up to 40 files, 100MB each. Zip archives are supported.</p>
       <input
         ref={inputRef}
         type="file"
