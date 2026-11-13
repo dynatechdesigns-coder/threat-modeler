@@ -29,14 +29,37 @@ export const getScan = asyncHandler(async (req, res) => {
 });
 
 /** Saves a frontend-generated AI threat matrix to the report. */
-export const updateScan = asyncHandler(async (req, res) => {
-  const report = await findOwned(req);
-  if (req.body?.resultData !== undefined) report.resultData = req.body.resultData;
-  if (req.body?.status !== undefined) report.status = req.body.status;
-  await report.save();
-  res.json({ report });
-});
+export const updateScan = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, resultData } = req.body;
 
+    // 1. Allowlist status updates to prevent arbitrary state injection
+    const allowedStatuses = ['completed', 'failed', 'running', 'uploaded'];
+    if (status && !allowedStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid scan status value.' });
+    }
+
+    const scan = await Scan.findById(id);
+    if (!scan) {
+      return res.status(404).json({ error: 'Scan report not found.' });
+    }
+
+    // 2. Prevent client-supplied findings/resultData if the report is marked public or shared
+    if (scan.isShared && resultData) {
+      return res.status(403).json({ error: 'Cannot modify result data on shared reports.' });
+    }
+
+    if (status) scan.status = status;
+    if (resultData && !scan.isShared) scan.resultData = resultData;
+
+    await scan.save();
+    return res.status(200).json({ success: true, scan });
+  } catch (error) {
+    console.error('Update scan error:', error);
+    return res.status(500).json({ error: 'Server error updating scan report.' });
+  }
+};
 export const triggerScan = asyncHandler(async (req, res) => {
   const report = await findOwned(req);
   if (report.status === 'running') throw new ApiError(409, 'Scan is already running');
