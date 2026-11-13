@@ -63,6 +63,15 @@ export const demoLimiter = rateLimit({
   message: msg('Demo limit reached (10 per hour). Please try again later'),
 });
 
+// Demo status polling: cheap database reads every few seconds while a scan
+// runs, so this cap is generous. Only scan *creation* stays tightly capped.
+export const demoPollLimiter = rateLimit({
+  ...base,
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  message: msg('Too many requests, please slow down'),
+});
+
 // Public share links need no sign-in, so they are limited per visitor address.
 export const publicLimiter = rateLimit({
   ...base,

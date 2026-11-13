@@ -32,7 +32,8 @@ export const env = {
   jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   clientOrigins: parseOrigins(process.env.CLIENT_ORIGIN || 'http://localhost:5173'),
-  maxUploadMb: Number(process.env.MAX_UPLOAD_MB) || 25,
+  // Upload gate only: the scanner itself skips oversized entries gracefully and analyzes the rest.
+  maxUploadMb: Number(process.env.MAX_UPLOAD_MB) || 100,
   scannerProvider: process.env.SCANNER_PROVIDER || 'agent',
   osvEnabled: process.env.OSV_ENABLED !== 'false',
   scanIncludeTests: process.env.SCAN_INCLUDE_TESTS === 'true',

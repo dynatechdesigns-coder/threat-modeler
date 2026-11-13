@@ -130,6 +130,7 @@ export async function loadSources({ files, readFile, log = () => {}, includeTest
         const { entries, skipped } = readZip(buf);
         log(`Extracted ${entries.length} file(s) from ${file.originalName}`);
         stats.tooLarge += skipped.filter((s) => /large/.test(s.reason)).length;
+        if (skipped.length) log(`[WARN] Skipped ${skipped.length} entr${skipped.length === 1 ? 'y' : 'ies'} in ${file.originalName} (${skipped[0].reason})`);
         for (const entry of entries) consider(entry.path, entry.buffer);
       } catch (err) {
         log(`[ERROR] ${file.originalName}: ${err.message}`);

@@ -51,7 +51,11 @@ export function readZip(buffer, opts = {}) {
     pos += 46 + nameLen + extraLen + commentLen;
 
     if (name.endsWith('/')) continue; // directory entry
-    if (entries.length >= maxEntries) throw new Error(`Archive contains too many files (max ${maxEntries})`);
+    if (entries.length >= maxEntries) {
+      // Scan through: keep what was extracted so far instead of rejecting the whole archive.
+      skipped.push({ name: '(remaining files)', reason: `archive file limit reached (max ${maxEntries})` });
+      break;
+    }
     if (flags & 1) {
       skipped.push({ name, reason: 'encrypted' });
       continue;
@@ -85,7 +89,11 @@ export function readZip(buffer, opts = {}) {
     }
 
     total += data.length;
-    if (total > maxTotalBytes) throw new Error('Archive is too large once extracted');
+    if (total > maxTotalBytes) {
+      // Scan through: keep what was extracted so far instead of rejecting the whole archive.
+      skipped.push({ name, reason: 'archive too large once extracted, remaining files skipped' });
+      break;
+    }
     entries.push({ path: name, buffer: data });
   }
 

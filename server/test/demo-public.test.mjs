@@ -38,6 +38,23 @@ test('judge demo: anonymous scans are capped globally instead of per quota', () 
   assert.ok(controllerSrc.includes('if (!user)'), 'assertCanScan should branch for anonymous visitors');
 });
 
+test('judge demo: visitors can scan their own code without an account', () => {
+  const uploadRoute = routesSrc.indexOf("router.post('/demo/upload'");
+  const guard = routesSrc.indexOf('router.use(protect)');
+  assert.ok(uploadRoute !== -1, 'scan routes should expose the public demo upload endpoint');
+  assert.ok(uploadRoute < guard, 'demo upload must be registered before router.use(protect)');
+  assert.ok(routesSrc.includes('scanDemoUpload'), 'scan routes should wire scanDemoUpload');
+  assert.equal(typeof scanController.scanDemoUpload, 'function', 'scanDemoUpload should be exported');
+  assert.ok(controllerSrc.includes('req.files'), 'demo upload should read multipart files');
+  assert.ok(controllerSrc.includes("'origin.kind': 'demo'"), 'demo uploads should be scoped as demo-origin reports');
+});
+
+test('judge demo: status polling has its own generous cap so it never 429s mid-scan', () => {
+  assert.equal(typeof rateLimits.demoPollLimiter, 'function', 'demoPollLimiter should be exported');
+  assert.ok(routesSrc.includes("router.get('/demo/:id', demoPollLimiter,"), 'polling must use demoPollLimiter, not the 10/hour creation cap');
+  assert.ok(!routesSrc.includes("router.get('/demo/:id', demoLimiter,"), 'polling must not share the scan-creation limiter');
+});
+
 test('judge demo: scan runner tolerates ownerless reports', () => {
   const runnerSrc = fs.readFileSync(new URL('../src/services/scanRunner.js', import.meta.url), 'utf8');
   assert.ok(runnerSrc.includes('report.user ?'), 'scan runner should guard the owner lookup for demo reports');

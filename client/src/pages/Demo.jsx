@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Loader2, RotateCcw, ShieldCheck } from 'lucide-react';
+import { ArrowRight, FolderUp, Loader2, RotateCcw, ShieldCheck, Sparkles } from 'lucide-react';
 import Terminal from '../components/scan/Terminal.jsx';
 import SeverityBadge from '../components/ui/SeverityBadge.jsx';
 import { SEVERITIES } from '../lib/severity.js';
@@ -23,10 +23,36 @@ async function fetchDemo(id) {
   return data.report;
 }
 
+const MAX_DEMO_BYTES = 100 * 1024 * 1024;
+
+async function postDemoUpload(files) {
+  const total = files.reduce((n, f) => n + f.size, 0);
+  if (total > MAX_DEMO_BYTES) throw new Error('Those files total over 100MB. Try a smaller set or a zip of just your source files');
+  const form = new FormData();
+  for (const f of files.slice(0, 10)) form.append('files', f);
+  const res = await fetch(`${API_BASE}/scans/demo/upload`, { method: 'POST', body: form });
+  if (res.status === 429) throw new Error('The demo is busy right now. Please try again in a minute');
+  if (!res.ok) {
+    let message = `Upload failed (HTTP ${res.status})`;
+    try {
+      const data = await res.json();
+      if (data?.message) message = data.message;
+    } catch {
+      // Ignore
+    }
+    throw new Error(message);
+  }
+  const data = await res.json();
+  return data.report;
+}
+
 // Public one-click demo for hackathon judges: no account, no password.
 // Runs the built-in vulnerable app through the real scanner and streams progress.
 export default function Demo() {
   const [phase, setPhase] = useState('idle');
+  const [mode, setMode] = useState('sample');
+  const [ranOwn, setRanOwn] = useState(false);
+  const [files, setFiles] = useState([]);
   const [report, setReport] = useState(null);
   const [error, setError] = useState('');
   const timer = useRef(null);
@@ -57,12 +83,14 @@ export default function Demo() {
     }, 2500);
   }, []);
 
-  const start = async () => {
+  const start = async (which = mode, chosen = files) => {
     setError('');
     setReport(null);
     setPhase('starting');
     try {
-      const created = await postDemo();
+      if (which === 'own' && chosen.length === 0) throw new Error('Choose at least one code file or a zip to scan');
+      setRanOwn(which === 'own');
+      const created = which === 'own' ? await postDemoUpload(chosen) : await postDemo();
       setReport(created);
       setPhase('running');
       poll(created._id);
@@ -75,6 +103,7 @@ export default function Demo() {
   const reset = () => {
     stopPolling();
     setReport(null);
+    setFiles([]);
     setError('');
     setPhase('idle');
   };
@@ -100,13 +129,70 @@ export default function Demo() {
           <div className="text-center">
             <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">Watch it hack itself.</h1>
             <p className="mx-auto mt-4 max-w-xl text-slate-400">
-              One click runs a real scan of a built-in vulnerable app — static rules, dependency
-              check, and AI review — right here. No account, no password.
+              A real scan — static rules, dependency check, and AI review — right here.
+              No account, no password.
             </p>
-            <button type="button" onClick={start} className="btn-primary mx-auto mt-8 px-6 py-3 text-base">
-              Run the live demo
-              <ArrowRight className="h-4 w-4" />
-            </button>
+
+            <div className="mx-auto mt-8 inline-flex rounded-xl border border-slate-800 bg-slate-900 p-1 text-sm">
+              <button
+                type="button"
+                onClick={() => setMode('sample')}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 ${mode === 'sample' ? 'bg-slate-700 text-white' : 'text-slate-400'}`}
+              >
+                <Sparkles className="h-4 w-4" />
+                Sample app
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('own')}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 ${mode === 'own' ? 'bg-slate-700 text-white' : 'text-slate-400'}`}
+              >
+                <FolderUp className="h-4 w-4" />
+                Your code
+              </button>
+            </div>
+
+            {mode === 'sample' ? (
+              <div>
+                <button type="button" onClick={() => start('sample')} className="btn-primary mx-auto mt-6 px-6 py-3 text-base">
+                  Run the live demo
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="mx-auto mt-6 max-w-xl rounded-xl border border-slate-800 bg-slate-900 p-6">
+                <label className="block cursor-pointer rounded-xl border border-dashed border-slate-700 p-6 text-slate-400 hover:border-cyan-500/50">
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => setFiles(Array.from(e.target.files || []))}
+                  />
+                  {files.length === 0 ? (
+                    <span>Drop in code files or a zip <span className="text-slate-500">(up to 10 files, 100MB total)</span></span>
+                  ) : (
+                    <span className="text-slate-200">{files.length} file{files.length === 1 ? '' : 's'} selected</span>
+                  )}
+                </label>
+                {files.length > 0 && (
+                  <ul className="mt-3 space-y-1 text-left font-mono text-xs text-slate-500">
+                    {files.slice(0, 10).map((f) => (
+                      <li key={f.name + f.size} className="truncate">{f.name}</li>
+                    ))}
+                  </ul>
+                )}
+                <button
+                  type="button"
+                  onClick={() => start('own')}
+                  disabled={files.length === 0}
+                  className="btn-primary mx-auto mt-4 px-6 py-3 text-base disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Scan my code
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+                <p className="mt-3 text-xs text-slate-500">Files are only read as text, never executed, and auto-deleted after the scan.</p>
+              </div>
+            )}
             <p className="mt-4 text-sm text-slate-500">Takes about a minute. First run can be slower if the server is waking up.</p>
           </div>
         )}
@@ -125,7 +211,7 @@ export default function Demo() {
           <div>
             <div className="mb-4 flex items-center gap-3">
               <Loader2 className="h-5 w-5 animate-spin text-cyan-400" />
-              <p className="text-slate-300">Scanning the demo app… you can watch every step below.</p>
+              <p className="text-slate-300">Scanning {ranOwn ? 'your code' : 'the demo app'}… you can watch every step below.</p>
             </div>
             <Terminal lines={report?.logs || ['Starting demo scan…']} running />
           </div>
@@ -170,8 +256,8 @@ export default function Demo() {
             </div>
 
             <div className="mt-10 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-6 text-center">
-              <h2 className="text-xl font-bold text-white">That's the demo. Imagine it on your code.</h2>
-              <p className="mt-2 text-sm text-slate-400">Sign up free to scan your own projects, track fixes, and watch repos.</p>
+              <h2 className="text-xl font-bold text-white">{ranOwn ? 'That was your code. Imagine this on every commit.' : "That's the demo. Imagine it on your code."}</h2>
+              <p className="mt-2 text-sm text-slate-400">Sign up free to save reports, track fixes, and watch repos.</p>
               <div className="mt-4 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link to="/login" className="btn-primary px-6 py-3 text-base">
                   Scan your own code

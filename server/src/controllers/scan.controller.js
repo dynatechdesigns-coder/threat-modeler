@@ -158,6 +158,33 @@ export const scanDemo = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Judge demo with the visitor's own code: up to 10 files (or a zip) scanned
+ * without an account. Same guards as the one-click demo: the global
+ * concurrent-demo cap, the per-IP demoLimiter, and uploads auto-deleted
+ * after the scan. Uploaded code is only ever read as text, never executed.
+ */
+export const scanDemoUpload = asyncHandler(async (req, res) => {
+  await assertCanScan(req.user, { demo: true });
+  if (!req.files || req.files.length === 0) throw new ApiError(400, 'Choose at least one code file to scan');
+
+  const userId = req.user?._id;
+  const files = [];
+  for (const file of req.files) {
+    files.push(await saveFile(file, userId || 'demo'));
+  }
+  const name = (req.body.name || '').trim().slice(0, 120) || files[0].originalName;
+  const report = await ScanReport.create({
+    user: userId,
+    name,
+    files,
+    status: 'uploaded',
+    origin: { kind: 'demo' },
+  });
+  await startScan(report);
+  res.status(202).json({ report });
+});
+
+/**
  * Public demo result polling for visitors without an account (hackathon
  * judges). Only demo-origin reports are reachable here, and the owner id is
  * stripped so anonymous reports cannot be tied back to anyone.
