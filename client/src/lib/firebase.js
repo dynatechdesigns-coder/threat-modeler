@@ -26,8 +26,12 @@ export let appCheck;
 
 // Initialize App Check with your debug token for local testing
 if (typeof window !== 'undefined') {
-  // Paste your generated debug token string right here
-  self.FIREBASE_APPCHECK_DEBUG_TOKEN = "7F34BB8D-03C1-4C07-9CAD-1A9F02FBD9E6";
+  // Debug token only for local development: import.meta.env.DEV is false in
+  // production builds, so the token can never leak into a shipped bundle.
+  if (import.meta.env.DEV) {
+    // Paste your generated debug token string right here
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = "7F34BB8D-03C1-4C07-9CAD-1A9F02FBD9E6";
+  }
 
   // Use the reCAPTCHA v3 Site Key you created in the Firebase console (App Check)
   appCheck = initializeAppCheck(app, {
