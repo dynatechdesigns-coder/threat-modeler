@@ -54,7 +54,28 @@ function FixBlock({ fix }) {
   );
 }
 
-function FindingCard({ finding, reportId, showRemediate }) {
+function ExpandableBlock({ children, clamp }) {
+  const [open, setOpen] = useState(false);
+  if (!clamp) return children;
+  return (
+    <div>
+      <div className={open ? '' : 'relative max-h-64 overflow-hidden'}>
+        {children}
+        {!open && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-900 to-transparent" />
+        )}
+      </div>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="mt-1 text-xs text-slate-400 hover:text-cyan-300"
+      >
+        {open ? 'Show less' : 'Show more'}
+      </button>
+    </div>
+  );
+}
+
+function FindingCard({ finding, reportId, showRemediate, canRescan }) {
   const [open, setOpen] = useState(false);
   const fix = useMemo(() => suggestFix(finding), [finding]);
 
@@ -90,21 +111,25 @@ function FindingCard({ finding, reportId, showRemediate }) {
         <div className="space-y-4 border-t border-slate-800 p-4 text-sm">
           <div>
             <p className="mb-1 text-xs font-semibold uppercase text-slate-500">Description</p>
-            <p className="text-slate-300">{finding.description}</p>
+            <ExpandableBlock clamp={(finding.description?.length || 0) > 350}>
+              <p className="break-words text-slate-300">{finding.description}</p>
+            </ExpandableBlock>
           </div>
           {finding.snippet && (
             <div>
               <p className="mb-1 text-xs font-semibold uppercase text-slate-500">Code</p>
-              <pre className="overflow-x-auto rounded-lg border border-slate-800 bg-black/50 p-3 font-mono text-xs leading-relaxed text-slate-300">
-                {finding.snippet}
-              </pre>
+              <ExpandableBlock clamp={finding.snippet.split('\n').length > 12 || finding.snippet.length > 600}>
+                <pre className="overflow-x-auto rounded-lg border border-slate-800 bg-black/50 p-3 font-mono text-xs leading-relaxed text-slate-300">
+                  {finding.snippet}
+                </pre>
+              </ExpandableBlock>
             </div>
           )}
           <div>
             <p className="mb-1 text-xs font-semibold uppercase text-slate-500">Recommendation</p>
             <p className="text-slate-300">{finding.recommendation}</p>
           </div>
-          {showRemediate && <RemediationPanel reportId={reportId} finding={finding} />}
+          {showRemediate && <RemediationPanel reportId={reportId} finding={finding} canRescan={canRescan} />}
           {fix && <FixBlock fix={fix} />}
         </div>
       )}
@@ -267,7 +292,7 @@ export default function ThreatReport({ shared = false }) {
       <div className="mt-10 mb-4">
         <h2 className="text-lg font-semibold text-white">Architecture map</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Each edge is one finding, from the file it lives in to its issue category. Follows the severity filter below.
+          Files above, issue categories below — findings between the same pair merge into one edge labeled with the count and worst severity. Follows the severity filter below.
         </p>
       </div>
       <ArchitectureGraph nodes={graph.nodes} edges={graph.edges} />
@@ -296,7 +321,7 @@ export default function ThreatReport({ shared = false }) {
           <p className="text-sm text-slate-500">No findings for this filter.</p>
         ) : (
           findings.map((f) => (
-            <FindingCard key={f._id} finding={f} reportId={report._id} showRemediate={!shared && !isDemo} />
+            <FindingCard key={f._id} finding={f} reportId={report._id} showRemediate={!shared && !isDemo} canRescan={canRescan} />
           ))
         )}
       </div>

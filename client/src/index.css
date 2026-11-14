@@ -10,6 +10,14 @@
   }
   body {
     @apply bg-slate-950 text-slate-200 antialiased;
+    /* Long file paths, URLs, and hashes wrap instead of breaking layouts on
+       narrow screens. overflow-wrap inherits, so this covers the whole app.
+       <pre> blocks keep horizontal scrolling (see below). */
+    overflow-wrap: break-word;
+  }
+  pre {
+    /* Code blocks scroll instead of wrapping, so pasted code stays intact. */
+    overflow-wrap: normal;
   }
   /* Page background picture. To use your own, replace client/public/bg.jpg (keep the name).
      The 0.96 layer hides almost all of it. Lower it (e.g. 0.6) to show more, or delete the whole body::before block to remove the picture.
