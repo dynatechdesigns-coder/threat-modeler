@@ -12,8 +12,7 @@ import { suggestFix } from '../lib/fixes.js';
 import { downloadReportPdf } from '../lib/pdf.js';
 import SeverityBadge from '../components/ui/SeverityBadge.jsx';
 import SeverityChart from '../components/charts/SeverityChart.jsx';
-import ArchitectureGraph from '../components/architecture/ArchitectureGraph.jsx';
-import { buildArchitecture } from '../lib/architecture.js';
+import ThreatSummary from '../components/report/ThreatSummary.jsx';
 
 function FixBlock({ fix }) {
   const [copied, setCopied] = useState(false);
@@ -217,10 +216,6 @@ export default function ThreatReport({ shared = false }) {
       .sort((a, b) => order(a.severity) - order(b.severity));
   }, [report, filter]);
 
-  // Follows the severity filter above, so the map always matches the visible list.
-  // Kept above the early returns: hooks must run in the same order every render.
-  const graph = useMemo(() => buildArchitecture(findings), [findings]);
-
   // Progressive disclosure for long finding lists: show 5, reveal more on tap.
   const [visibleCount, setVisibleCount] = useState(() => readView().visibleCount || 5);
   const [openIds, setOpenIds] = useState(() => new Set(readView().openIds || []));
@@ -327,12 +322,12 @@ export default function ThreatReport({ shared = false }) {
       {report.aiSummary?.text && <AiSummary summary={report.aiSummary} />}
 
       <div className="mt-10 mb-4">
-        <h2 className="text-lg font-semibold text-white">Architecture map</h2>
+        <h2 className="text-lg font-semibold text-white">Threat summary</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Files above, issue categories below — findings between the same pair merge into one edge labeled with the count and worst severity. Follows the severity filter below.
+          Severity totals and the files carrying the most findings. Follows the severity filter below.
         </p>
       </div>
-      <ArchitectureGraph nodes={graph.nodes} edges={graph.edges} />
+      <ThreatSummary summary={report.summary} findings={findings} />
 
       <div className="mt-10 mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
