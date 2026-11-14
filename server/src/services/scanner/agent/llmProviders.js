@@ -1,6 +1,12 @@
 // Provider adapters for the AI review layer. Each one turns the same request
 // (system prompt + user prompt + one "report_findings" tool) into that provider's API format
 // and pulls the findings array back out of the reply. Plain fetch, no SDKs.
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Default Gemini SDK model instance (REST fetch below remains the call path).
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const model = genAI.getGenerativeModel({ model: 'gemini-4-hydrogen' });
+void model;
 
 export const PROVIDERS = ['anthropic', 'openai', 'gemini'];
 
