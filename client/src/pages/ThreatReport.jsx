@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ChevronDown, Download, GitCompare, Loader2, RefreshCw, Sparkles } from 'lucide-react';
 import { useGetScanQuery, useGetSharedReportQuery, useRescanMutation } from '../features/scans/scansApi.js';
@@ -214,6 +214,12 @@ export default function ThreatReport({ shared = false }) {
   // Kept above the early returns: hooks must run in the same order every render.
   const graph = useMemo(() => buildArchitecture(findings), [findings]);
 
+  // Progressive disclosure for long finding lists: show 5, reveal more on tap.
+  const [visibleCount, setVisibleCount] = useState(5);
+  useEffect(() => {
+    setVisibleCount(5);
+  }, [filter, report]);
+
   if (error) return <p className="text-sm text-red-400">{getErrorMessage(error)}</p>;
   if (!report) return <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />;
 
@@ -320,11 +326,22 @@ export default function ThreatReport({ shared = false }) {
         {findings.length === 0 ? (
           <p className="text-sm text-slate-500">No findings for this filter.</p>
         ) : (
-          findings.map((f) => (
-            <FindingCard key={f._id} finding={f} reportId={report._id} showRemediate={!shared && !isDemo} canRescan={canRescan} />
-          ))
+          findings
+            .slice(0, visibleCount)
+            .map((f) => (
+              <FindingCard key={f._id} finding={f} reportId={report._id} showRemediate={!shared && !isDemo} canRescan={canRescan} />
+            ))
         )}
       </div>
+
+      {findings.length > visibleCount && (
+        <div className="mt-6 text-center">
+          <button onClick={() => setVisibleCount((c) => c + 5)} className="btn-ghost px-6 py-2.5 text-sm">
+            <ChevronDown className="h-4 w-4" />
+            Show 5 more · {Math.min(visibleCount, findings.length)} of {findings.length}
+          </button>
+        </div>
+      )}
 
       {report.logs?.length > 0 && (
         <details className="card mt-8 p-4">
