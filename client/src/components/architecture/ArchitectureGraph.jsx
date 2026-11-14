@@ -43,7 +43,7 @@ function layoutTopDown(items, pairs) {
   const positions = new Map(items.filter((n) => n.fixed).map((n) => [n.id, n.fixed]));
   if (free.length) {
     const g = new dagre.graphlib.Graph();
-    g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 90 });
+    g.setGraph({ rankdir: 'TB', nodesep: 80, ranksep: 130 });
     g.setDefaultEdgeLabel(() => ({}));
     for (const n of items) g.setNode(n.id, { width: n.width, height: n.height });
     for (const [s, t] of pairs) g.setEdge(s, t);
@@ -88,7 +88,7 @@ function toFlowEdges(edges, nodeIds) {
   });
 }
 
-export default function ArchitectureGraph({ nodes = [], edges = [], className = 'h-[480px]' }) {
+export default function ArchitectureGraph({ nodes = [], edges = [], className = 'h-[50vh] min-h-[400px] w-full md:h-[75vh]' }) {
   const { flowNodes, flowEdges } = useMemo(() => {
     const items = toFlowNodes(nodes);
     const nodeIds = new Set(items.map((n) => n.id));
@@ -99,13 +99,13 @@ export default function ArchitectureGraph({ nodes = [], edges = [], className = 
         id: n.id,
         position: positions.get(n.id),
         data: { label: n.label },
+        className: 'text-xs md:text-sm',
         style: {
           background: '#0f172a',
           color: '#e2e8f0',
           border: '1px solid #334155',
           borderRadius: 8,
           padding: '8px 12px',
-          fontSize: 12,
           width: NODE_WIDTH,
           whiteSpace: 'normal',
           overflowWrap: 'break-word',
@@ -126,6 +126,9 @@ export default function ArchitectureGraph({ nodes = [], edges = [], className = 
         nodes={flowNodes}
         edges={flowEdges}
         fitView
+        fitViewOptions={{ padding: 0.2 }}
+        panOnDrag
+        zoomOnPinch
         defaultEdgeOptions={{ type: 'smoothstep', style: { stroke: '#64748b' } }}
       >
         <Background gap={16} color="#1e293b" />
