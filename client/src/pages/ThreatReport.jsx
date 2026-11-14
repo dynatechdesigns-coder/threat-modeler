@@ -12,7 +12,7 @@ import { suggestFix } from '../lib/fixes.js';
 import { downloadReportPdf } from '../lib/pdf.js';
 import SeverityBadge from '../components/ui/SeverityBadge.jsx';
 import SeverityChart from '../components/charts/SeverityChart.jsx';
-import ThreatSummary from '../components/report/ThreatSummary.jsx';
+import AttackPathTracer from '../components/report/AttackPathTracer.jsx';
 
 function FixBlock({ fix }) {
   const [copied, setCopied] = useState(false);
@@ -322,12 +322,12 @@ export default function ThreatReport({ shared = false }) {
       {report.aiSummary?.text && <AiSummary summary={report.aiSummary} />}
 
       <div className="mt-10 mb-4">
-        <h2 className="text-lg font-semibold text-white">Threat summary</h2>
+        <h2 className="text-lg font-semibold text-white">Attack path</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Severity totals and the files carrying the most findings. Follows the severity filter below.
+          Where an attacker gets in and what it leads to. Follows the severity filter below.
         </p>
       </div>
-      <ThreatSummary summary={report.summary} findings={findings} />
+      <AttackPathTracer findings={findings} />
 
       <div className="mt-10 mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
