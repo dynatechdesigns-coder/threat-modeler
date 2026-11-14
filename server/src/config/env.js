@@ -65,7 +65,7 @@ export const env = {
     baseUrl: process.env.AI_BASE_URL || '',
     maxChars: Number(process.env.AI_MAX_CHARS) || 150000,
     maxBatches: Number(process.env.AI_MAX_BATCHES) || 4,
-    timeoutSeconds: Number(process.env.AI_TIMEOUT_SECONDS) || 30,
+    timeoutSeconds: Number(process.env.AI_TIMEOUT_SECONDS) || 120,
   },
   r2: {
     accountId: process.env.R2_ACCOUNT_ID || '',

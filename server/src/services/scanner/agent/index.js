@@ -20,7 +20,7 @@ export function createAgentScanner({ config = {}, fetchImpl = globalThis.fetch }
     apiKey: '',
     maxChars: 150000,
     maxBatches: 4,
-    timeoutSeconds: 30,
+    timeoutSeconds: 120,
     osvEnabled: true,
     includeTests: false,
     baseUrl: '',

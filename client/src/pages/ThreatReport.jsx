@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ChevronDown, Download, GitCompare, Loader2, RefreshCw, Sparkles } from 'lucide-react';
 import { useGetScanQuery, useGetSharedReportQuery, useRescanMutation } from '../features/scans/scansApi.js';
 import ShareControl from '../components/report/ShareControl.jsx';
+import RemediationPanel from '../components/report/RemediationPanel.jsx';
 import { getErrorMessage } from '../lib/errors.js';
 import { formatDate } from '../lib/format.js';
 import { sampleReport } from '../data/sampleReport.js';
@@ -11,6 +12,8 @@ import { suggestFix } from '../lib/fixes.js';
 import { downloadReportPdf } from '../lib/pdf.js';
 import SeverityBadge from '../components/ui/SeverityBadge.jsx';
 import SeverityChart from '../components/charts/SeverityChart.jsx';
+import ArchitectureGraph from '../components/architecture/ArchitectureGraph.jsx';
+import { buildArchitecture } from '../lib/architecture.js';
 
 function FixBlock({ fix }) {
   const [copied, setCopied] = useState(false);
@@ -51,7 +54,7 @@ function FixBlock({ fix }) {
   );
 }
 
-function FindingCard({ finding }) {
+function FindingCard({ finding, reportId, showRemediate }) {
   const [open, setOpen] = useState(false);
   const fix = useMemo(() => suggestFix(finding), [finding]);
 
@@ -101,6 +104,7 @@ function FindingCard({ finding }) {
             <p className="mb-1 text-xs font-semibold uppercase text-slate-500">Recommendation</p>
             <p className="text-slate-300">{finding.recommendation}</p>
           </div>
+          {showRemediate && <RemediationPanel reportId={reportId} finding={finding} />}
           {fix && <FixBlock fix={fix} />}
         </div>
       )}
@@ -200,6 +204,9 @@ export default function ThreatReport({ shared = false }) {
   const riskColor =
     report.riskScore >= 70 ? 'text-red-400' : report.riskScore >= 40 ? 'text-orange-400' : 'text-yellow-400';
 
+  // Follows the severity filter above, so the map always matches the visible list.
+  const graph = useMemo(() => buildArchitecture(findings), [findings]);
+
   return (
     <div>
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
@@ -256,6 +263,14 @@ export default function ThreatReport({ shared = false }) {
 
       {report.aiSummary?.text && <AiSummary summary={report.aiSummary} />}
 
+      <div className="mt-10 mb-4">
+        <h2 className="text-lg font-semibold text-white">Architecture map</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Each edge is one finding, from the file it lives in to its issue category. Follows the severity filter below.
+        </p>
+      </div>
+      <ArchitectureGraph nodes={graph.nodes} edges={graph.edges} />
+
       <div className="mt-10 mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-white">Vulnerabilities</h2>
         <div className="flex flex-wrap gap-2">
@@ -279,7 +294,9 @@ export default function ThreatReport({ shared = false }) {
         {findings.length === 0 ? (
           <p className="text-sm text-slate-500">No findings for this filter.</p>
         ) : (
-          findings.map((f) => <FindingCard key={f._id} finding={f} />)
+          findings.map((f) => (
+            <FindingCard key={f._id} finding={f} reportId={report._id} showRemediate={!shared && !isDemo} />
+          ))
         )}
       </div>
 

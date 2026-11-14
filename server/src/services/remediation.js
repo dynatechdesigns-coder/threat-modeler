@@ -28,7 +28,7 @@ const TOOL = {
  * Asks Gemini for a minimal patch of one finding's saved snippet.
  * Pure apart from the model call, so tests can stub fetchImpl.
  */
-export async function getRemediationPatch({ finding, apiKey, model, fetchImpl = globalThis.fetch, timeoutSeconds = 30 }) {
+export async function getRemediationPatch({ finding, apiKey, model, fetchImpl = globalThis.fetch, timeoutSeconds = 120 }) {
   if (!apiKey) throw new ApiError(503, 'AI remediation needs a Gemini API key (set GEMINI_API_KEY)');
   const snippet = String(finding?.snippet || '').slice(0, 4000);
   if (!snippet.trim()) throw new ApiError(422, 'No code context was saved for this finding, so there is nothing to patch');

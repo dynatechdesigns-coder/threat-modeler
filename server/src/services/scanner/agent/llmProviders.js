@@ -74,7 +74,7 @@ const adapters = {
 };
 
 /** Calls the chosen provider with one forced tool and returns that tool's input object. Retries rate limits and server errors. */
-export async function callTool({ provider = 'anthropic', apiKey, model, baseUrl, system, user, tool, fetchImpl, timeoutSeconds = 30 }) {
+export async function callTool({ provider = 'anthropic', apiKey, model, baseUrl, system, user, tool, fetchImpl, timeoutSeconds = 120 }) {
   const adapter = adapters[provider];
   if (!adapter) {
     const err = new Error(`Unknown AI provider "${provider}". Use one of: ${PROVIDERS.join(', ')}`);
