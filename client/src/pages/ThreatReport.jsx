@@ -185,6 +185,10 @@ export default function ThreatReport({ shared = false }) {
       .sort((a, b) => order(a.severity) - order(b.severity));
   }, [report, filter]);
 
+  // Follows the severity filter above, so the map always matches the visible list.
+  // Kept above the early returns: hooks must run in the same order every render.
+  const graph = useMemo(() => buildArchitecture(findings), [findings]);
+
   if (error) return <p className="text-sm text-red-400">{getErrorMessage(error)}</p>;
   if (!report) return <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />;
 
@@ -203,9 +207,6 @@ export default function ThreatReport({ shared = false }) {
 
   const riskColor =
     report.riskScore >= 70 ? 'text-red-400' : report.riskScore >= 40 ? 'text-orange-400' : 'text-yellow-400';
-
-  // Follows the severity filter above, so the map always matches the visible list.
-  const graph = useMemo(() => buildArchitecture(findings), [findings]);
 
   return (
     <div>
