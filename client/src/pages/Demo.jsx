@@ -23,7 +23,8 @@ async function fetchDemo(id) {
   return data.report;
 }
 
-const MAX_DEMO_BYTES = 100 * 1024 * 1024;
+const MAX_DEMO_FILES = 40;
+const MAX_DEMO_BYTES = 10 * 1024 * 1024;
 
 async function postDemoGithub(url) {
   const res = await fetch(`${API_BASE}/scans/demo/github`, {
@@ -81,10 +82,13 @@ async function filesFromDrop(dataTransfer) {
 }
 
 async function postDemoUpload(files) {
+  // Refuse over-limit instead of silently scanning a truncated subset (#3):
+  // the server enforces the same caps, this message just arrives sooner.
+  if (files.length > MAX_DEMO_FILES) throw new Error(`You selected ${files.length} files — the demo scans up to ${MAX_DEMO_FILES}. Remove some or send a zip instead`);
   const total = files.reduce((n, f) => n + f.size, 0);
-  if (total > MAX_DEMO_BYTES) throw new Error('Those files total over 100MB. Try a smaller set or a zip of just your source files');
+  if (total > MAX_DEMO_BYTES) throw new Error('Those files total over 10MB. Try a smaller set or a zip of just your source files');
   const form = new FormData();
-  for (const f of files.slice(0, 40)) form.append('files', f);
+  for (const f of files) form.append('files', f);
   const res = await fetch(`${API_BASE}/scans/demo/upload`, { method: 'POST', body: form });
   if (res.status === 429) throw new Error('The demo is busy right now. Please try again in a minute');
   if (!res.ok) {
@@ -267,17 +271,17 @@ export default function Demo() {
                     e.preventDefault();
                     setDragOver(false);
                     const dropped = await filesFromDrop(e.dataTransfer);
-                    if (dropped.length) setFiles(dropped.slice(0, 40));
+                    if (dropped.length) setFiles(dropped);
                   }}
                 >
                   <input
                     type="file"
                     multiple
                     className="hidden"
-                    onChange={(e) => setFiles(Array.from(e.target.files || []).slice(0, 40))}
+                    onChange={(e) => setFiles(Array.from(e.target.files || []))}
                   />
                   {files.length === 0 ? (
-                    <span>Drag & drop code files, a zip, or a whole project folder here, or click to browse <span className="text-slate-500">(100MB total)</span></span>
+                    <span>Drag & drop code files, a zip, or a whole project folder here, or click to browse <span className="text-slate-500">(40 files, 10MB total)</span></span>
                   ) : (
                     <span className="text-slate-200">{files.length} file{files.length === 1 ? '' : 's'} selected — drop to replace</span>
                   )}
@@ -347,8 +351,8 @@ export default function Demo() {
             )}
 
             <div className="mt-6 space-y-3">
-              {findings.map((f) => (
-                <article key={f._id || f.title} className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+              {findings.map((f, i) => (
+                <article key={`${f._id || f.title}-${i}`} className="rounded-xl border border-slate-800 bg-slate-900 p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <SeverityBadge severity={f.severity} />
                     <h3 className="font-semibold text-white">{f.title}</h3>

@@ -80,15 +80,51 @@ export const deleteScan = asyncHandler(async (req, res) => {
   res.json({ success: true });
 });
 
+/**
+ * Public demo guardrails (anonymous AI-burn surface). The scanner itself only
+ * analyzes ~10MB (see fileLoader LIMITS), so anything above that is bandwidth
+ * and storage cost with no extra findings — hence the deliberately small caps.
+ * No CAPTCHA service is configured, so size + concurrency + TTL do the work.
+ */
+export const DEMO_MAX_FILES = 40;
+export const DEMO_MAX_BYTES = 10 * 1024 * 1024;
+export const DEMO_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+export const demoExpiresAt = (now = Date.now()) => new Date(now + DEMO_TTL_MS);
+
+/**
+ * Strips everything an anonymous poller must not see: the owner id, storage
+ * keys/paths, storage backend, per-file and per-finding internal ids, and any
+ * share token. Top-level _id stays — the client needs it for polling.
+ */
+export function toPublicDemoReport(doc) {
+  const out = typeof doc?.toObject === 'function' ? doc.toObject() : { ...doc };
+  delete out.user;
+  delete out.shareToken;
+  delete out.__v;
+  out.files = (out.files || []).map((f) => ({
+    originalName: f.originalName,
+    size: f.size,
+    mimeType: f.mimeType,
+  }));
+  out.findings = (out.findings || []).map((f) => {
+    const { _id, ...rest } = f;
+    return rest;
+  });
+  return out;
+}
+
 async function assertCanScan(user, { demo = false } = {}) {
   if (!user) {
     // Anonymous judge demo: no quota system without an account, so a small
     // global cap on concurrent demo scans plus the per-IP demoLimiter instead.
-    const running = await ScanReport.countDocuments({ status: 'running', 'origin.kind': 'demo' });
-    if (running >= 3) throw new ApiError(429, 'The demo is busy right now. Please try again in a minute');
+    // New reports start as 'uploaded', so both states count — otherwise a
+    // burst of simultaneous POSTs all passes the check before any of them
+    // flips to 'running', and each burns a full AI scan.
+    const active = await ScanReport.countDocuments({ status: { $in: ['running', 'uploaded'] }, 'origin.kind': 'demo' });
+    if (active >= 3) throw new ApiError(429, 'The demo is busy right now. Please try again in a minute');
     return;
   }
-  const running = await ScanReport.countDocuments({ user: user._id, status: 'running' });
+  const running = await ScanReport.countDocuments({ user: user._id, status: { $in: ['running', 'uploaded'] } });
   if (running >= 2) throw new ApiError(429, 'You already have 2 scans running. Wait for one to finish');
   if (!demo) await assertScanQuota(user);
 }
@@ -131,6 +167,7 @@ async function startDemoScan(user) {
     files,
     status: 'uploaded',
     origin: { kind: 'demo' },
+    expiresAt: demoExpiresAt(),
   });
   await startScan(report);
   return report;
@@ -154,7 +191,7 @@ export const scanDemoGithub = asyncHandler(async (req, res) => {
 
   let zip;
   try {
-    zip = await downloadRepoZip({ owner: target.owner, repo: target.repo, branch: target.branch, token: '', maxBytes: env.maxUploadMb * 1024 * 1024 });
+    zip = await downloadRepoZip({ owner: target.owner, repo: target.repo, branch: target.branch, token: '', maxBytes: DEMO_MAX_BYTES });
   } catch (err) {
     if (err instanceof GithubError) throw new ApiError(err.status, err.message);
     throw err;
@@ -171,6 +208,7 @@ export const scanDemoGithub = asyncHandler(async (req, res) => {
     files: [file],
     status: 'uploaded',
     origin: { kind: 'demo', owner: zip.owner, repo: zip.repo, branch: zip.branch, private: false },
+    expiresAt: demoExpiresAt(),
   });
   await startScan(report);
   res.status(202).json({ report });
@@ -229,6 +267,13 @@ export const scanDemo = asyncHandler(async (req, res) => {
 export const scanDemoUpload = asyncHandler(async (req, res) => {
   await assertCanScan(req.user, { demo: true });
   if (!req.files || req.files.length === 0) throw new ApiError(400, 'Choose at least one code file to scan');
+  if (req.files.length > DEMO_MAX_FILES) {
+    throw new ApiError(400, `You selected ${req.files.length} files — the demo scans up to ${DEMO_MAX_FILES}. Remove some or send a zip instead`);
+  }
+  const totalBytes = req.files.reduce((n, f) => n + (f.size || 0), 0);
+  if (totalBytes > DEMO_MAX_BYTES) {
+    throw new ApiError(413, 'Those files total over 10MB. The demo scans up to 10MB — try a smaller set or a zip of just your source files');
+  }
 
   const userId = req.user?._id;
   const files = [];
@@ -242,6 +287,7 @@ export const scanDemoUpload = asyncHandler(async (req, res) => {
     files,
     status: 'uploaded',
     origin: { kind: 'demo' },
+    expiresAt: demoExpiresAt(),
   });
   await startScan(report);
   res.status(202).json({ report });
@@ -255,9 +301,7 @@ export const scanDemoUpload = asyncHandler(async (req, res) => {
 export const getDemoScan = asyncHandler(async (req, res) => {
   const report = await ScanReport.findOne({ _id: req.params.id, 'origin.kind': 'demo' });
   if (!report) throw new ApiError(404, 'Demo scan not found');
-  const out = report.toObject();
-  delete out.user;
-  res.json({ report: out });
+  res.json({ report: toPublicDemoReport(report) });
 });
 
 /**

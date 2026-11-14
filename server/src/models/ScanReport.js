@@ -76,6 +76,10 @@ const scanReportSchema = new mongoose.Schema(
       sha: String,
     },
     shareToken: { type: String, unique: true, sparse: true }, // set while a read-only public link is switched on
+    // TTL for ownerless judge-demo reports (authenticated reports leave this
+    // unset, so they never expire). Set at creation; MongoDB deletes the
+    // document once the date passes.
+    expiresAt: { type: Date, default: undefined },
     filesDeleted: { type: Boolean, default: false }, // raw uploads removed from storage after the scan
     error: { type: String },
     startedAt: Date,
@@ -83,6 +87,11 @@ const scanReportSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Ownerless demo reports auto-delete 7 days after creation (expiresAt is only
+// ever set on demo-origin reports). expireAfterSeconds 0 deletes exactly at
+// the stored date, not after an additional delay.
+scanReportSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 scanReportSchema.set('toJSON', {
   transform: (_doc, ret) => {
