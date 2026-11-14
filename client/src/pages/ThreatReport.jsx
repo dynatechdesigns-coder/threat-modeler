@@ -75,15 +75,14 @@ function ExpandableBlock({ children, clamp }) {
   );
 }
 
-function FindingCard({ finding, reportId, showRemediate, canRescan }) {
-  const [open, setOpen] = useState(false);
+function FindingCard({ finding, reportId, showRemediate, canRescan, open, onToggle }) {
   const fix = useMemo(() => suggestFix(finding), [finding]);
 
   return (
     <div className="card">
       <button
         className="flex w-full items-start justify-between gap-4 p-4 text-left"
-        onClick={() => setOpen((o) => !o)}
+        onClick={onToggle}
       >
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -191,7 +190,15 @@ function AiSummary({ summary }) {
 export default function ThreatReport({ shared = false }) {
   const { id, token } = useParams();
   const isDemo = !shared && id === 'demo';
-  const [filter, setFilter] = useState('all');
+  const viewKey = `tm-report-view:${shared ? `shared:${token}` : isDemo ? 'demo' : id}`;
+  const readView = () => {
+    try {
+      return JSON.parse(sessionStorage.getItem(viewKey)) || {};
+    } catch {
+      return {};
+    }
+  };
+  const [filter, setFilter] = useState(() => readView().filter || 'all');
   const navigate = useNavigate();
   const [rescan, rescanState] = useRescanMutation();
   const [rescanError, setRescanError] = useState('');
@@ -215,10 +222,34 @@ export default function ThreatReport({ shared = false }) {
   const graph = useMemo(() => buildArchitecture(findings), [findings]);
 
   // Progressive disclosure for long finding lists: show 5, reveal more on tap.
-  const [visibleCount, setVisibleCount] = useState(5);
+  const [visibleCount, setVisibleCount] = useState(() => readView().visibleCount || 5);
+  const [openIds, setOpenIds] = useState(() => new Set(readView().openIds || []));
   useEffect(() => {
     setVisibleCount(5);
   }, [filter, report]);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(viewKey, JSON.stringify({ filter, visibleCount, openIds: [...openIds] }));
+    } catch {
+      /* storage unavailable; the view just won't persist */
+    }
+  }, [viewKey, filter, visibleCount, openIds]);
+  const toggleCard = (fid) =>
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(fid)) next.delete(fid);
+      else next.add(fid);
+      return next;
+    });
+  const resetView = () => {
+    try {
+      sessionStorage.removeItem(viewKey);
+    } catch {
+      /* nothing stored */
+    }
+    setVisibleCount(5);
+    setOpenIds(new Set());
+  };
 
   if (error) return <p className="text-sm text-red-400">{getErrorMessage(error)}</p>;
   if (!report) return <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />;
@@ -304,7 +335,12 @@ export default function ThreatReport({ shared = false }) {
       <ArchitectureGraph nodes={graph.nodes} edges={graph.edges} />
 
       <div className="mt-10 mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-white">Vulnerabilities</h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-lg font-semibold text-white">Vulnerabilities</h2>
+          <button onClick={resetView} className="text-xs text-slate-500 hover:text-slate-300">
+            Reset view
+          </button>
+        </div>
         <div className="flex flex-wrap gap-2">
           {['all', ...SEVERITIES].map((s) => (
             <button
@@ -329,7 +365,15 @@ export default function ThreatReport({ shared = false }) {
           findings
             .slice(0, visibleCount)
             .map((f) => (
-              <FindingCard key={f._id} finding={f} reportId={report._id} showRemediate={!shared && !isDemo} canRescan={canRescan} />
+              <FindingCard
+                key={f._id}
+                finding={f}
+                reportId={report._id}
+                showRemediate={!shared && !isDemo}
+                canRescan={canRescan}
+                open={openIds.has(f._id)}
+                onToggle={() => toggleCard(f._id)}
+              />
             ))
         )}
       </div>
