@@ -77,12 +77,6 @@ export const scansApi = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, id) => [{ type: 'Scan', id }, LIST_TAG],
     }),
 
-    // POST /scans/:id/remediate. Asks Gemini for a minimal patch of one finding.
-    // Returns { findingId, patchedCode, explanation } — nothing stored server-side.
-    remediate: builder.mutation({
-      query: ({ id, findingId }) => ({ url: `/scans/${id}/remediate`, method: 'POST', body: { findingId } }),
-    }),
-
     // DELETE /scans/:id
     deleteScan: builder.mutation({
       query: (id) => ({ url: `/scans/${id}`, method: 'DELETE' }),
@@ -96,7 +90,6 @@ export const {
   useGetScanQuery,
   useUploadFilesMutation,
   useTriggerScanMutation,
-  useRemediateMutation,
   useScanGithubMutation,
   useScanDemoMutation, useRescanMutation,
   useEnableShareMutation,

@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import { Check, Copy, Loader2, Sparkles } from 'lucide-react';
-import { useRemediateMutation, useRescanMutation } from '../../features/scans/scansApi.js';
+import { useRescanMutation } from '../../features/scans/scansApi.js';
 import { getErrorMessage } from '../../lib/errors.js';
+import { getRemediationPatchViaFirebase } from '../../lib/aiRemediation.js';
 
 // Human-in-the-loop AI fix for one finding: asks Gemini for a patch, shows it
 // side by side against the saved snippet, and only on explicit confirmation
@@ -12,7 +13,7 @@ import { getErrorMessage } from '../../lib/errors.js';
 // for reports that can be fetched again (demo and public repos).
 export default function RemediationPanel({ reportId, finding, canRescan }) {
   const navigate = useNavigate();
-  const [remediate, { isLoading }] = useRemediateMutation();
+  const [remediating, setRemediating] = useState(false);
   const [rescan, { isLoading: isRescanning }] = useRescanMutation();
   const [patch, setPatch] = useState(null);
   const [error, setError] = useState('');
@@ -26,11 +27,14 @@ export default function RemediationPanel({ reportId, finding, canRescan }) {
   const run = async () => {
     setError('');
     setApplied(false);
+    setRemediating(true);
     try {
-      const out = await remediate({ id: reportId, findingId: finding._id }).unwrap();
-      setPatch(out);
+      // Routed through Firebase AI Logic in the browser — no backend call.
+      setPatch(await getRemediationPatchViaFirebase(finding));
     } catch (err) {
       setError(getErrorMessage(err));
+    } finally {
+      setRemediating(false);
     }
   };
 
@@ -60,7 +64,7 @@ export default function RemediationPanel({ reportId, finding, canRescan }) {
     }
   };
 
-  const busy = isLoading || isRescanning;
+  const busy = remediating || isRescanning;
 
   return (
     <div>
@@ -68,7 +72,7 @@ export default function RemediationPanel({ reportId, finding, canRescan }) {
         <p className="text-xs font-semibold uppercase text-slate-500">AI patch</p>
         {!patch && (
           <button onClick={run} disabled={busy} className="text-xs text-cyan-300 hover:text-cyan-200 disabled:opacity-50">
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="mr-1 inline h-3.5 w-3.5" />Fix with AI</>}
+            {remediating ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="mr-1 inline h-3.5 w-3.5" />Fix with AI</>}
           </button>
         )}
       </div>
@@ -80,7 +84,7 @@ export default function RemediationPanel({ reportId, finding, canRescan }) {
         </div>
       )}
 
-      {isLoading && !patch && <p className="text-xs text-slate-500">Gemini is writing a patch… this can take up to a minute on large files.</p>}
+      {remediating && !patch && <p className="text-xs text-slate-500">Gemini is writing a patch… this can take up to a minute on large files.</p>}
 
       {patch && (
         <div>

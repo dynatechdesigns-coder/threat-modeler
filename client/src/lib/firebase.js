@@ -1,6 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import { getFirestore } from "firebase/firestore";
 import { getAI } from "firebase/ai";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -16,6 +17,9 @@ const firebaseConfig = {
 };
 export const app = initializeApp(firebaseConfig);
 
+// Firestore database instance.
+export const db = getFirestore(app);
+
 // Initialized App Check instance (initializeAppCheck returns it, and the
 // App Check pre-flight in ActiveScan uses it with getToken).
 export let appCheck;
@@ -25,9 +29,9 @@ if (typeof window !== 'undefined') {
   // Paste your generated debug token string right here
   self.FIREBASE_APPCHECK_DEBUG_TOKEN = "7F34BB8D-03C1-4C07-9CAD-1A9F02FBD9E6";
 
-  // Use the reCAPTCHA Enterprise Site Key you created in Google Cloud
+  // Use the reCAPTCHA v3 Site Key you created in the Firebase console (App Check)
   appCheck = initializeAppCheck(app, {
-    provider: new ReCaptchaEnterpriseProvider('6LfvZR0uAAAAANaUc7McXvKTVgSwWF4RJQOGrzH7'),
+    provider: new ReCaptchaV3Provider('6LfvZR0uAAAAANaUc7McXvKTVgSwWF4RJQOGrzH7'),
     isTokenAutoRefreshEnabled: true
   });
 }
