@@ -9,6 +9,7 @@ import { env } from '../config/env.js';
 import { newShareToken } from '../services/share.js';
 import { demoFiles } from '../services/demoProject.js';
 import { assertScanQuota } from '../services/entitlements.js';
+import { getRemediationPatch } from '../services/remediation.js';
 
 async function findOwned(req) {
   const report = await ScanReport.findOne({ _id: req.params.id, user: req.user._id });
@@ -298,6 +299,26 @@ export const scanDemoUpload = asyncHandler(async (req, res) => {
  * judges). Only demo-origin reports are reachable here, and the owner id is
  * stripped so anonymous reports cannot be tied back to anyone.
  */
+/**
+ * AI remediation: returns a Gemini-written patch for one finding's saved
+ * snippet. Authenticated and owner-scoped (findOwned), so anonymous demo
+ * reports are unreachable here. Uses the per-user scanLimiter (AI costs
+ * money) and never executes the code — the patch is only returned.
+ */
+export const remediateFinding = asyncHandler(async (req, res) => {
+  const report = await findOwned(req);
+  const findingId = String(req.body?.findingId || '').trim();
+  if (!findingId) throw new ApiError(400, 'findingId is required');
+  const finding = report.findings.id(findingId);
+  if (!finding) throw new ApiError(404, 'Finding not found in this report');
+  const patch = await getRemediationPatch({
+    finding: finding.toObject(),
+    apiKey: env.ai.apiKey,
+    model: env.ai.model || 'gemini-2.0-flash',
+  });
+  res.json({ findingId: String(finding._id), patchedCode: patch.patchedCode, explanation: patch.explanation });
+});
+
 export const getDemoScan = asyncHandler(async (req, res) => {
   const report = await ScanReport.findOne({ _id: req.params.id, 'origin.kind': 'demo' });
   if (!report) throw new ApiError(404, 'Demo scan not found');

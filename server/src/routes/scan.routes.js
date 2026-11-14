@@ -3,7 +3,7 @@ import { protect } from '../middleware/auth.js';
 import { uploadFiles, limitContentLength, limitTotalSize } from '../middleware/upload.js';
 import { DEMO_MAX_BYTES } from '../controllers/scan.controller.js';
 import { scanLimiter, demoLimiter, demoPollLimiter } from '../middleware/rateLimits.js';
-import { listScans, getScan, updateScan, triggerScan, deleteScan, scanGithub, enableShare, disableShare, scanDemo, scanDemoUpload, scanDemoGithub, getDemoScan, rescan } from '../controllers/scan.controller.js';
+import { listScans, getScan, updateScan, triggerScan, deleteScan, scanGithub, enableShare, disableShare, scanDemo, scanDemoUpload, scanDemoGithub, getDemoScan, rescan, remediateFinding } from '../controllers/scan.controller.js';
 
 const router = Router();
 // Public judge demo: one-click scan, own-code upload, public-repo link,
@@ -20,6 +20,7 @@ router.get('/:id', getScan);
 router.put('/:id', protect, updateScan);
 router.post('/:id/trigger', scanLimiter, triggerScan);
 router.post('/:id/rescan', scanLimiter, rescan);
+router.post('/:id/remediate', scanLimiter, remediateFinding);
 router.post('/:id/share', enableShare);
 router.delete('/:id/share', disableShare);
 router.delete('/:id', deleteScan);

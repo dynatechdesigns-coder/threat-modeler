@@ -32,6 +32,7 @@ export function publicReport(report) {
       file: f.file,
       line: f.line,
       cwe: f.cwe,
+      compliance_tags: f.compliance_tags || [],
       recommendation: f.recommendation,
       snippet: f.snippet,
       source: f.source,

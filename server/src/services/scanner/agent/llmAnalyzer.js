@@ -14,6 +14,7 @@ Rules:
 - Focus on broken access control, injection, authentication and session flaws, insecure cryptography, SSRF, unsafe file handling, exposed secrets, and missing validation at trust boundaries.
 - Severity: critical = remotely exploitable with serious impact and little effort; high = exploitable under some conditions; medium = limited impact or unusual conditions; low = hardening.
 - Recommendations must be concrete defensive fixes. Do not write exploit code or attack payloads.
+- Tag each finding with the compliance frameworks it violates, using codes like "OWASP-A01:2021" (OWASP Top 10 2021) and "SOC2-CC6.1" (SOC 2 trust-services criteria). Use an empty list when none applies.
 - Values shown as [REDACTED] are secrets removed for privacy. Do not report the redaction itself.
 Respond only by calling the report_findings tool.`;
 
@@ -36,9 +37,10 @@ const TOOL = {
             line: { type: 'integer', description: 'Line number shown before the pipe' },
             description: { type: 'string' },
             recommendation: { type: 'string' },
+            compliance_tags: { type: 'array', items: { type: 'string' }, description: 'Compliance mappings this finding violates, e.g. "OWASP-A01:2021" or "SOC2-CC6.1". Empty when none applies.' },
             confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
           },
-          required: ['title', 'severity', 'category', 'file', 'line', 'description', 'recommendation', 'confidence'],
+          required: ['title', 'severity', 'category', 'file', 'line', 'description', 'recommendation', 'compliance_tags', 'confidence'],
         },
       },
     },
@@ -113,6 +115,9 @@ function normalize(raw, fileMap) {
     file,
     line,
     cwe: /^CWE-\d+$/.test(String(raw.cwe || '')) ? raw.cwe : '',
+    compliance_tags: Array.isArray(raw.compliance_tags)
+      ? raw.compliance_tags.map((t) => String(t).trim().slice(0, 40)).filter(Boolean).slice(0, 8)
+      : [],
     recommendation: String(raw.recommendation || '').slice(0, 700),
     snippet: snippetAround(target.src.lines, line - 1, isEnvFile(file)),
     source: 'ai',

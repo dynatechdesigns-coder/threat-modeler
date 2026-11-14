@@ -20,6 +20,7 @@ const findingSchema = new mongoose.Schema(
     file: { type: String, default: '' },
     line: { type: Number },
     cwe: { type: String, default: '' },
+    compliance_tags: { type: [String], default: [] }, // e.g. "OWASP-A01:2021", "SOC2-CC6.1"
     recommendation: { type: String, default: '' },
     snippet: { type: String, default: '' },
     source: { type: String, enum: ['rule', 'ai', 'osv'] },
