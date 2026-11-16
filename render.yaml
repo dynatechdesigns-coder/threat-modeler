@@ -19,3 +19,6 @@ services:
         sync: false
       - key: CLIENT_ORIGIN
         sync: false
+      # One-click judge sign-in for hackathon judging. Turn off after the event.
+      - key: DEMO_LOGIN_ENABLED
+        value: true

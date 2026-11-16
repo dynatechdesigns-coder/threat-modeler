@@ -4,6 +4,7 @@ import {
   login,
   me,
   googleLogin,
+  demoLogin,
   verifyEmail,
   resendVerification,
   forgotPassword,
@@ -17,6 +18,7 @@ const router = Router();
 router.post('/register', registerLimiter, register);
 router.post('/login', loginLimiter, login);
 router.post('/google', loginLimiter, googleLogin);
+router.post('/demo', loginLimiter, demoLogin);
 router.get('/me', protect, me);
 router.post('/verify-email', tokenLimiter, verifyEmail);
 router.post('/resend-verification', protect, resendLimiter, resendVerification);

@@ -11,7 +11,7 @@ const rawBaseQuery = fetchBaseQuery({
 
 // Wraps the base query so an expired/invalid token logs the user out everywhere.
 // The plain action type string avoids a circular import with authSlice.
-const AUTH_ENDPOINTS = ['login', 'register'];
+const AUTH_ENDPOINTS = ['login', 'register', 'googleLogin', 'demoLogin'];
 
 const baseQueryWithAuth = async (args, api, extraOptions) => {
   const result = await rawBaseQuery(args, api, extraOptions);

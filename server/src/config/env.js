@@ -58,6 +58,13 @@ export const env = {
     },
   },
   safeBrowsingKey: process.env.SAFE_BROWSING_API_KEY || '',
+  // One-click judge/demo sign-in (POST /api/auth/demo). Off unless explicitly
+  // enabled: it creates a token without a password, so only turn it on for
+  // hackathon judging / demos, never for a production launch.
+  demoLogin: {
+    enabled: process.env.DEMO_LOGIN_ENABLED === 'true',
+    email: (process.env.DEMO_LOGIN_EMAIL || 'judge@hackathon.com').toLowerCase(),
+  },
   ai: {
     provider: aiProvider,
     apiKey: AI_KEYS[aiProvider],

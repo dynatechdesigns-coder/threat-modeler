@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { User } from '../models/User.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -104,6 +105,29 @@ export const googleLogin = asyncHandler(async (req, res) => {
   } else if (!user.emailVerified) {
     user.emailVerified = true;
     await user.save();
+  }
+  res.json({ token: signToken(user._id), user: publicUser(user) });
+});
+
+/**
+ * POST /api/auth/demo (public, only when DEMO_LOGIN_ENABLED=true).
+ * One-click sign-in for hackathon judges: finds or creates the demo user and
+ * returns a normal session, no password or code needed. Disabled everywhere
+ * else (answers 404 so the endpoint is invisible).
+ */
+export const demoLogin = asyncHandler(async (req, res) => {
+  if (!env.demoLogin.enabled) throw new ApiError(404, 'Not found');
+
+  let user = await User.findOne({ email: env.demoLogin.email });
+  if (!user) {
+    user = await User.create({
+      name: 'Hackathon Judge',
+      email: env.demoLogin.email,
+      // Random 64-char secret nobody knows: satisfies the schema's password
+      // requirement while keeping this account reachable only via this endpoint.
+      password: crypto.randomBytes(32).toString('hex'),
+      emailVerified: true, // no inbox involved, so there is nothing to verify
+    });
   }
   res.json({ token: signToken(user._id), user: publicUser(user) });
 });

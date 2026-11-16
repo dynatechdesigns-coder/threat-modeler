@@ -29,6 +29,7 @@ const authSlice = createSlice({
       .addMatcher(authApi.endpoints.login.matchFulfilled, onAuthenticated)
       .addMatcher(authApi.endpoints.register.matchFulfilled, onAuthenticated)
       .addMatcher(authApi.endpoints.googleLogin.matchFulfilled, onAuthenticated)
+      .addMatcher(authApi.endpoints.demoLogin.matchFulfilled, onAuthenticated)
       .addMatcher(authApi.endpoints.getMe.matchFulfilled, (state, { payload }) => {
         state.user = payload.user;
       })

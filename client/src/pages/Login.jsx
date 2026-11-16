@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, ShieldAlert } from 'lucide-react';
 import { selectToken } from '../features/auth/authSlice.js';
-import { useGoogleLoginMutation, useLoginMutation, useRegisterMutation } from '../features/auth/authApi.js';
+import { useGoogleLoginMutation, useLoginMutation, useRegisterMutation, useDemoLoginMutation } from '../features/auth/authApi.js';
 import PasswordInput from '../components/ui/PasswordInput.jsx';
 import GoogleButton, { googleSignInEnabled } from '../components/auth/GoogleButton.jsx';
 import { getErrorMessage } from '../lib/errors.js';
@@ -20,11 +20,12 @@ export default function Login() {
   const [login, { isLoading: loggingIn }] = useLoginMutation();
   const [register, { isLoading: registering }] = useRegisterMutation();
   const [googleLogin, { isLoading: googling }] = useGoogleLoginMutation();
+  const [demoLogin, { isLoading: demoing }] = useDemoLoginMutation();
 
   const [mode, setMode] = useState('login');
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
-  const busy = loggingIn || registering || googling;
+  const busy = loggingIn || registering || googling || demoing;
 
   if (token) return <Navigate to={dest} replace />;
 
@@ -104,7 +105,7 @@ export default function Login() {
               e.preventDefault();
               setError('');
               try {
-                await login({ email: 'judge@hackathon.com', password: 'demo1234' }).unwrap();
+                await demoLogin().unwrap();
                 navigate(dest, { replace: true });
               } catch (err) {
                 setError(getErrorMessage(err));
