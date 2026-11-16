@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import { getFirestore } from "firebase/firestore";
 import { getAI } from "firebase/ai";
 // TODO: Add SDKs for Firebase products that you want to use
@@ -24,20 +24,35 @@ export const db = getFirestore(app);
 // App Check pre-flight in ActiveScan uses it with getToken).
 export let appCheck;
 
-// Initialize App Check with your debug token for local testing
+// App Check (Fraud Defense / reCAPTCHA Enterprise). The site key must belong
+// to the SAME Firebase project as the config above and be registered under
+// Firebase console > App Check. It is public, but keep it in env so each
+// environment (local / preview / prod) can use its own key.
 if (typeof window !== 'undefined') {
+  const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+  const configured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
+
   // Debug token only for local development: import.meta.env.DEV is false in
-  // production builds, so the token can never leak into a shipped bundle.
-  if (import.meta.env.DEV) {
-    // Paste your generated debug token string right here
-    self.FIREBASE_APPCHECK_DEBUG_TOKEN = "7F34BB8D-03C1-4C07-9CAD-1A9F02FBD9E6";
+  // production builds, so this branch is dead-code-eliminated from prod.
+  // Generate one via a debug run, then register it under
+  // Firebase console > App Check > Manage debug tokens.
+  if (import.meta.env.DEV && import.meta.env.VITE_APPCHECK_DEBUG_TOKEN) {
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN;
   }
 
-  // Use the reCAPTCHA v3 Site Key you created in the Firebase console (App Check)
-  appCheck = initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider('6LfvZR0uAAAAANaUc7McXvKTVgSwWF4RJQOGrzH7'),
-    isTokenAutoRefreshEnabled: true
-  });
+  if (configured && siteKey) {
+    appCheck = initializeAppCheck(app, {
+      provider: new ReCaptchaEnterpriseProvider(siteKey),
+      isTokenAutoRefreshEnabled: true
+    });
+  } else {
+    // Intentionally leave appCheck undefined: callers (ActiveScan) already
+    // fall back with a warning. Initializing with a missing/wrong key is
+    // what produces the "AppCheck: 400 error" + throttle spam.
+    console.warn(
+      '[AppCheck] Skipped initialization (missing VITE_FIREBASE_* config or VITE_RECAPTCHA_SITE_KEY).'
+    );
+  }
 }
 
 // Firebase AI Logic instance: hybrid on-device (Gemini Nano) with cloud fallback.
