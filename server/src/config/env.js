@@ -79,6 +79,10 @@ export const env = {
     accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
     bucket: process.env.R2_BUCKET || '',
+    // Jurisdiction of the R2 bucket. Set to "eu" for EU-jurisdiction
+    // buckets (uses <account>.eu.r2.cloudflarestorage.com). Empty or
+    // anything else keeps the standard endpoint for existing deployments.
+    jurisdiction: process.env.R2_JURISDICTION || '',
   },
 };
 

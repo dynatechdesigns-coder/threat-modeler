@@ -14,12 +14,28 @@ const LOCAL_DIR = path.resolve(process.cwd(), 'uploads');
 export const isR2Configured = () =>
   Boolean(env.r2.accountId && env.r2.accessKeyId && env.r2.secretAccessKey && env.r2.bucket);
 
+/**
+ * Builds the S3-compatible endpoint for a Cloudflare R2 account.
+ * R2_ACCOUNT_ID stays the bare account ID; jurisdiction is separate.
+ * Buckets with EU jurisdiction reject the standard endpoint with
+ * AccessDenied (403), so R2_JURISDICTION=eu selects the EU endpoint.
+ * Anything else (unset, empty, unknown) keeps the standard endpoint,
+ * preserving existing deployments.
+ */
+export function r2Endpoint(accountId, jurisdiction) {
+  const id = String(accountId || '').trim();
+  if (String(jurisdiction || '').trim().toLowerCase() === 'eu') {
+    return `https://${id}.eu.r2.cloudflarestorage.com`;
+  }
+  return `https://${id}.r2.cloudflarestorage.com`;
+}
+
 let client;
 function r2() {
   if (!client) {
     client = new S3Client({
       region: 'auto',
-      endpoint: `https://${env.r2.accountId}.r2.cloudflarestorage.com`,
+      endpoint: r2Endpoint(env.r2.accountId, env.r2.jurisdiction),
       credentials: {
         accessKeyId: env.r2.accessKeyId,
         secretAccessKey: env.r2.secretAccessKey,
