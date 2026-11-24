@@ -39,6 +39,10 @@ const userSchema = new mongoose.Schema(
       lastReference: { type: String },
     },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    // Hackathon judge identity: an isolated per-login account with a short-lived
+    // session and restricted routes (see middleware/judge.js). Never set for
+    // ordinary Google/password accounts. New optional field: existing users read as falsy.
+    judge: { type: Boolean, default: false, index: true },
   },
   { timestamps: true }
 );

@@ -28,7 +28,11 @@ export const registerLimiter = rateLimit({
 });
 
 // Per signed-in user (these run after the auth middleware). Scans cost AI money, so they are capped hardest.
-const perUser = (req) => String(req.user?._id || 'anonymous');
+// Judge sessions share one pool per visitor address instead: every demo login
+// mints a fresh isolated identity, so keying judges by user id would reset
+// their hourly scan/upload budgets on every login.
+export const perUser = (req) =>
+  req.isJudge && req.ip ? `judge:${req.ip}` : String(req.user?._id || 'anonymous');
 
 export const uploadLimiter = rateLimit({
   ...base,
@@ -70,6 +74,16 @@ export const demoPollLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 300,
   message: msg('Too many requests, please slow down'),
+});
+
+// Judge sign-in creates a fresh account on every successful call, so the
+// login limiter (which forgives successes) cannot bound it. This one counts
+// every attempt per visitor address.
+export const demoLoginLimiter = rateLimit({
+  ...base,
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  message: msg('Too many judge sign-ins. Please try again in an hour'),
 });
 
 // Public share links need no sign-in, so they are limited per visitor address.

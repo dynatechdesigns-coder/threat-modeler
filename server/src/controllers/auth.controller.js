@@ -110,26 +110,41 @@ export const googleLogin = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Judge sessions live this long, then the token stops working. Short on
+ * purpose: a judge who needs more time signs in again with one click and gets
+ * a fresh isolated identity.
+ */
+export const JUDGE_SESSION_TTL = '12h';
+export const JUDGE_SESSION_TTL_SECONDS = 12 * 60 * 60;
+
+/**
  * POST /api/auth/demo (public, only when DEMO_LOGIN_ENABLED=true).
- * One-click sign-in for hackathon judges: finds or creates the demo user and
- * returns a normal session, no password or code needed. Disabled everywhere
- * else (answers 404 so the endpoint is invisible).
+ * One-click sign-in for hackathon judges: mints a dedicated isolated identity
+ * per call and returns a short-lived session, no password or code needed.
+ * The identity can scan and read its own demo reports, but judge sessions are
+ * blocked from account-level features (see middleware/judge.js), and the
+ * session dies with its expiry or the moment the demo login is switched off.
+ * Disabled everywhere else (answers 404 so the endpoint is invisible).
  */
 export const demoLogin = asyncHandler(async (req, res) => {
   if (!env.demoLogin.enabled) throw new ApiError(404, 'Not found');
 
-  let user = await User.findOne({ email: env.demoLogin.email });
-  if (!user) {
-    user = await User.create({
-      name: 'Hackathon Judge',
-      email: env.demoLogin.email,
-      // Random 64-char secret nobody knows: satisfies the schema's password
-      // requirement while keeping this account reachable only via this endpoint.
-      password: crypto.randomBytes(32).toString('hex'),
-      emailVerified: true, // no inbox involved, so there is nothing to verify
-    });
-  }
-  res.json({ token: signToken(user._id), user: publicUser(user) });
+  // A fresh identity every time: judges never share an account, and this
+  // endpoint can never hand out a session for an existing ordinary account.
+  const user = await User.create({
+    name: 'Hackathon Judge',
+    email: `judge-${crypto.randomBytes(16).toString('hex')}@judge.local`,
+    // Random 64-char secret nobody knows: satisfies the schema's password
+    // requirement while keeping this account reachable only via this endpoint.
+    password: crypto.randomBytes(32).toString('hex'),
+    emailVerified: true, // no inbox involved, so there is nothing to verify
+    judge: true,
+  });
+  res.json({
+    token: signToken(user._id, { expiresIn: JUDGE_SESSION_TTL }),
+    user: publicUser(user),
+    expiresIn: JUDGE_SESSION_TTL_SECONDS,
+  });
 });
 
 /** POST /api/auth/verify-email { token } (public: the link in the email carries the token). */

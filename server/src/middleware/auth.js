@@ -2,6 +2,7 @@ import { User } from '../models/User.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { verifyToken } from '../utils/jwt.js';
+import { env } from '../config/env.js';
 
 export const protect = asyncHandler(async (req, _res, next) => {
   const header = req.headers.authorization || '';
@@ -12,11 +13,18 @@ export const protect = asyncHandler(async (req, _res, next) => {
   const user = await User.findById(payload.sub);
   if (!user) throw new ApiError(401, 'User no longer exists');
 
+  // Judge sessions are revoked the moment the demo login is switched off.
+  // Ordinary sessions are unaffected by that flag.
+  if (user.judge && !env.demoLogin.enabled) {
+    throw new ApiError(401, 'This judge session has been revoked. Please sign in again');
+  }
+
   // A password reset or change signs every device out: tokens issued before it are no longer accepted.
   if (user.passwordChangedAt && payload.iat < Math.floor(user.passwordChangedAt.getTime() / 1000)) {
     throw new ApiError(401, 'Your password was changed. Please sign in again');
   }
 
   req.user = user;
+  req.isJudge = user.judge === true;
   next();
 });
