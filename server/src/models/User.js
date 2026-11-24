@@ -47,10 +47,13 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-userSchema.pre('save', async function hashPassword(next) {
-  if (!this.isModified('password') || !this.password) return next();
+// Async pre-save middleware without a `next` callback: the installed Mongoose
+// version does not supply one to async hooks, so calling it throws
+// "next is not a function" and breaks every User.create (including judge
+// sign-in). Returning (or throwing) settles the hook instead.
+userSchema.pre('save', async function hashPassword() {
+  if (!this.isModified('password') || !this.password) return;
   this.password = await bcrypt.hash(this.password, 12);
-  next();
 });
 
 userSchema.methods.comparePassword = function comparePassword(candidate) {
